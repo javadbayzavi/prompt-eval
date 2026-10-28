@@ -1,0 +1,23 @@
+{% macro delete_button(action, what) -%}
+<form method="post" action="{{ action }}" class="inline"
+      onsubmit="return confirm('Delete this {{ what }}? This cannot be undone.')">
+  <button type="submit" class="danger">Delete</button>
+</form>
+{%- endmacro %}
+
+{% macro select(name, options, selected) -%}
+<select name="{{ name }}" id="{{ name }}">
+  {% for option in options %}
+  <option value="{{ option.value }}" {% if option == selected %}selected{% endif %}>{{ option.value }}</option>
+  {% endfor %}
+</select>
+{%- endmacro %}
+
+{% macro variable_inputs(variables, values={}) -%}
+{% for var in variables %}
+<label for="input__{{ var }}"><code>{{ '{{' }}{{ var }}{{ '}}' }}</code></label>
+<textarea name="input__{{ var }}" id="input__{{ var }}" rows="3">{{ values.get(var, '') }}</textarea>
+{% else %}
+<p class="muted">The latest version has no <code>{{ '{{' }}variables{{ '}}' }}</code>.</p>
+{% endfor %}
+{%- endmacro %}

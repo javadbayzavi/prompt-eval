@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-
-from prompt_eval.web import templates
+from fastapi import APIRouter
+from fastapi.responses import RedirectResponse
 
 router = APIRouter()
 
 
-@router.get("/", response_class=HTMLResponse)
-def index(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "index.html")
+@router.get("/")
+def index() -> RedirectResponse:
+    return RedirectResponse("/projects")
 
 
 @router.get("/healthz")

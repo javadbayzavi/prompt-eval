@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Projects · Prompt Eval{% endblock %}
+
+{% block content %}
+<h1>Projects</h1>
+
+{% if projects %}
+<ul class="cards">
+  {% for project in projects %}
+  <li class="card">
+    <a href="/projects/{{ project.id }}"><strong>{{ project.name }}</strong></a>
+    <span class="muted">· {{ project.prompts | length }} prompt{{ '' if project.prompts | length == 1 else 's' }}</span>
+    {% if project.description %}<p class="muted">{{ project.description }}</p>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No projects yet. Create one to start adding prompts.</p>
+{% endif %}
+
+<section class="panel">
+  <h2>New project</h2>
+  <form method="post" action="/projects" class="stack">
+    <label for="name">Name</label>
+    <input name="name" id="name" required>
+    <label for="description">Description</label>
+    <textarea name="description" id="description" rows="3"></textarea>
+    <div><button type="submit">Create project</button></div>
+  </form>
+</section>
+{% endblock %}

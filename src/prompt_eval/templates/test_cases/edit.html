@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import select, variable_inputs %}
+
+{% block title %}{{ test_case.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+<p class="crumbs">
+  <a href="/projects">Projects</a> /
+  <a href="/projects/{{ test_case.prompt.project.id }}">{{ test_case.prompt.project.name }}</a> /
+  <a href="/prompts/{{ test_case.prompt.id }}">{{ test_case.prompt.name }}</a> /
+</p>
+<h1>Edit test case</h1>
+
+<form method="post" action="/test-cases/{{ test_case.id }}" class="stack panel">
+  <label for="name">Name</label>
+  <input name="name" id="name" value="{{ test_case.name }}" required>
+  <label for="category">Category</label>
+  {{ select("category", categories, test_case.category) }}
+  <fieldset class="stack">
+    <legend>Inputs</legend>
+    {{ variable_inputs(variables, test_case.inputs) }}
+  </fieldset>
+  <label for="criteria">Criteria</label>
+  <textarea name="criteria" id="criteria" rows="3">{{ test_case.criteria }}</textarea>
+  <label for="expected_output">Expected output</label>
+  <textarea name="expected_output" id="expected_output" rows="4" class="mono">{{ test_case.expected_output }}</textarea>
+  <div>
+    <button type="submit">Save</button>
+    <a href="/prompts/{{ test_case.prompt.id }}#test-cases">Cancel</a>
+  </div>
+</form>
+{% endblock %}

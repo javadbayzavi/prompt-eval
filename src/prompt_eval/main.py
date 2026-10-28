@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from prompt_eval.config import Settings, get_settings
 from prompt_eval.db import init_db, make_engine
-from prompt_eval.routes import home
+from prompt_eval.routes import home, projects, prompts, test_cases
 from prompt_eval.web import BASE_DIR
 
 
@@ -26,5 +26,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
 
     app.mount("/static", StaticFiles(directory=Path(BASE_DIR, "static")), name="static")
-    app.include_router(home.router)
+    for module in (home, projects, prompts, test_cases):
+        app.include_router(module.router)
     return app

@@ -4,10 +4,10 @@ def test_healthz(client):
     assert response.json() == {"status": "ok"}
 
 
-def test_index_renders(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "Prompt Eval" in response.text
+def test_index_redirects_to_projects(client):
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/projects"
 
 
 def test_static_css_served(client):

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_button, select %}
+
+{% block title %}{{ project.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+<p class="crumbs"><a href="/projects">Projects</a> /</p>
+<h1>{{ project.name }}</h1>
+{% if project.description %}<p class="muted">{{ project.description }}</p>{% endif %}
+
+<h2>Prompts</h2>
+{% if project.prompts %}
+<table>
+  <thead><tr><th>Name</th><th>Format</th><th>Versions</th><th>Test cases</th></tr></thead>
+  <tbody>
+    {% for prompt in project.prompts %}
+    <tr>
+      <td><a href="/prompts/{{ prompt.id }}">{{ prompt.name }}</a></td>
+      <td><span class="badge">{{ prompt.output_format.value }}</span></td>
+      <td>{{ prompt.versions | length }}</td>
+      <td>{{ prompt.test_cases | length }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No prompts yet.</p>
+{% endif %}
+
+<section class="panel">
+  <h2>New prompt</h2>
+  <form method="post" action="/projects/{{ project.id }}/prompts" class="stack">
+    <label for="name">Name</label>
+    <input name="name" id="name" required>
+
+    <label for="task_description">Task description</label>
+    <textarea name="task_description" id="task_description" rows="3"
+              placeholder="What should the model do with this prompt?"></textarea>
+
+    <label for="output_format">Expected output format</label>
+    {{ select("output_format", output_formats, output_formats[0]) }}
+
+    <label for="output_schema">Output schema or shape <span class="muted">(optional; JSON Schema for JSON/YAML)</span></label>
+    <textarea name="output_schema" id="output_schema" rows="4" class="mono"></textarea>
+
+    <label for="system_prompt">System prompt <span class="muted">(optional)</span></label>
+    <textarea name="system_prompt" id="system_prompt" rows="4" class="mono"></textarea>
+
+    <label for="template">Prompt template <span class="muted">(use <code>{{ '{{' }}name{{ '}}' }}</code> for inputs)</span></label>
+    <textarea name="template" id="template" rows="8" class="mono" required></textarea>
+
+    <div><button type="submit">Create prompt</button></div>
+  </form>
+</section>
+
+<details class="panel">
+  <summary>Project settings</summary>
+  <form method="post" action="/projects/{{ project.id }}" class="stack">
+    <label for="edit-name">Name</label>
+    <input name="name" id="edit-name" value="{{ project.name }}" required>
+    <label for="edit-description">Description</label>
+    <textarea name="description" id="edit-description" rows="3">{{ project.description }}</textarea>
+    <div><button type="submit">Save</button></div>
+  </form>
+  <hr>
+  {{ delete_button("/projects/%d/delete" % project.id, "project and all its prompts") }}
+</details>
+{% endblock %}
