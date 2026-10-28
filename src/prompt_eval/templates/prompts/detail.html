@@ -156,7 +156,7 @@
   <tbody>
     {% for run in prompt.runs %}
     <tr>
-      <td><a href="/runs/{{ run.id }}">#{{ run.id }}</a></td>
+      <td><a href="/runs/{{ run.id }}">#{{ run.id }}</a> · <a href="/runs/{{ run.id }}/report">report</a></td>
       <td>v{{ run.version.version }}</td>
       <td>{{ run.results | map(attribute='engine_name') | unique | join(', ') }}</td>
       <td>{{ run.results | length }}</td>

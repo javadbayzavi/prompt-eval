@@ -10,7 +10,7 @@
   <a href="/prompts/{{ run.prompt.id }}">{{ run.prompt.name }}</a> /
 </p>
 <h1>Run #{{ run.id }} <span class="muted">· v{{ run.version.version }}</span></h1>
-<p class="muted">Started {{ run.created_at.strftime('%Y-%m-%d %H:%M') }} · {{ run.results | length }} results</p>
+<p class="muted">Started {{ run.created_at.strftime('%Y-%m-%d %H:%M') }} · {{ run.results | length }} results · <a href="/runs/{{ run.id }}/report">Report and suggestions →</a></p>
 
 <div id="progress">
   {% include "runs/_progress.html" %}

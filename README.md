@@ -16,6 +16,24 @@ uv run uvicorn prompt_eval.main:create_app --factory --reload
 
 Then open http://localhost:8000.
 
+## How it works
+
+1. **Projects and prompts.** A prompt has a task description, an expected output format
+   (JSON, YAML, XML, Markdown or text), an optional JSON Schema, and versions. Versions are
+   immutable; editing the text saves the next one. Templates use `{{variable}}` placeholders.
+2. **Test cases.** Add them by hand or generate them with any engine: choose how many and the
+   mix of normal, edge and adversarial cases, preview, then keep the ones you want.
+3. **Runs.** Run a version on several engines at once. Each engine has its own limits, and
+   results are saved with the exact prompt that was sent.
+4. **Scoring.**
+   - *Static checks* (parse, schema, no extra text, not cut off, length, regex), each with its
+     own weight as a percent of the static score.
+   - *Judge*: a model grades each output on weighted criteria, with reasoning per criterion.
+   - *Final score* = static share × static + the rest × judge.
+5. **Report.** Scores by engine and category, check pass rates, criterion averages, every test
+   with the reasons for its score, and a Markdown download. A model can then suggest prompt
+   changes and a revised prompt, which you can save as the next version and compare.
+
 ## Engines
 
 An engine is a model endpoint plus its limits. Add them on the **Engines** page:

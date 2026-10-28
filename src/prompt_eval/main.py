@@ -14,6 +14,7 @@ from prompt_eval.routes import (
     home,
     projects,
     prompts,
+    reports,
     runs,
     scoring,
     test_cases,
@@ -44,6 +45,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.runs = run_manager
 
     app.mount("/static", StaticFiles(directory=Path(BASE_DIR, "static")), name="static")
-    for module in (home, projects, prompts, test_cases, engines, generation, runs, scoring):
+    for module in (
+        home,
+        projects,
+        prompts,
+        test_cases,
+        engines,
+        generation,
+        runs,
+        scoring,
+        reports,
+    ):
         app.include_router(module.router)
     return app

@@ -180,3 +180,13 @@ table.results h4 { margin: 10px 0 4px; }
 .judge-list { min-width: 280px; max-width: 420px; }
 .judge-note { font-size: 13px; margin: 6px 0 0; max-width: 420px; }
 h3 { margin: 8px 0; }
+
+.inline-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inline-form select { width: auto; }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.result-card > summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 400; }
+.result-body { margin-top: 8px; }
+.reasons { padding-left: 18px; font-size: 14px; }
+.reasons .pass { color: #1a7f37; }
+.reasons .fail { color: #cf222e; }
+.changes li { margin-bottom: 8px; }

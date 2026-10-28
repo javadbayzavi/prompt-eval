@@ -1,0 +1,10 @@
+{% macro score(value) -%}
+{% if value is not none %}<span class="score-pill" style="--score: {{ value }}">{{ value }}</span>{% else %}<span class="muted">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro delta(value) -%}
+{% if value is none %}<span class="muted">—</span>
+{% elif value > 0 %}<span class="status-ok">+{{ value }}</span>
+{% elif value < 0 %}<span class="status-bad">{{ value }}</span>
+{% else %}<span class="muted">0</span>{% endif %}
+{%- endmacro %}

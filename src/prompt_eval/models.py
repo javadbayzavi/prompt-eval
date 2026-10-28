@@ -186,6 +186,9 @@ class Run(SQLModel, table=True):
     judge_engine_id: int | None = Field(default=None, foreign_key="engine.id", ondelete="SET NULL")
     judge_criteria: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
     judge_instructions: str = ""
+    # Prompt improvement suggestions for this run (see suggestions.py).
+    suggestions: dict | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    suggestions_engine: str = ""
     status: RunStatus = RunStatus.QUEUED
     created_at: datetime = Field(default_factory=utcnow)
     started_at: datetime | None = None
