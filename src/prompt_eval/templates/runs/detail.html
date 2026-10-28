@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_button %}
+
+{% block title %}Run #{{ run.id }} · Prompt Eval{% endblock %}
+
+{% block content %}
+<p class="crumbs">
+  <a href="/projects">Projects</a> /
+  <a href="/projects/{{ run.prompt.project.id }}">{{ run.prompt.project.name }}</a> /
+  <a href="/prompts/{{ run.prompt.id }}">{{ run.prompt.name }}</a> /
+</p>
+<h1>Run #{{ run.id }} <span class="muted">· v{{ run.version.version }}</span></h1>
+<p class="muted">Started {{ run.created_at.strftime('%Y-%m-%d %H:%M') }} · {{ run.results | length }} results</p>
+
+<div id="progress">
+  {% include "runs/_progress.html" %}
+</div>
+
+<details class="panel">
+  <summary>Prompt v{{ run.version.version }}</summary>
+  {% if run.version.system_prompt %}<h4>System</h4><pre>{{ run.version.system_prompt }}</pre>{% endif %}
+  <h4>Template</h4>
+  <pre>{{ run.version.template }}</pre>
+</details>
+
+{% if not active %}
+<p>{{ delete_button("/runs/%d/delete" % run.id, "run and its results") }}</p>
+{% endif %}
+{% endblock %}

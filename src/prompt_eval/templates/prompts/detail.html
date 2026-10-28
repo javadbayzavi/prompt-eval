@@ -140,4 +140,54 @@
     <div><button type="submit">Add test case</button></div>
   </form>
 </details>
+<h2 id="runs">Runs</h2>
+{% if prompt.runs %}
+<table>
+  <thead><tr><th>Run</th><th>Version</th><th>Engines</th><th>Results</th><th>Status</th><th>Started</th></tr></thead>
+  <tbody>
+    {% for run in prompt.runs %}
+    <tr>
+      <td><a href="/runs/{{ run.id }}">#{{ run.id }}</a></td>
+      <td>v{{ run.version.version }}</td>
+      <td>{{ run.results | map(attribute='engine_name') | unique | join(', ') }}</td>
+      <td>{{ run.results | length }}</td>
+      <td><span class="badge status-{{ run.status.value }}">{{ run.status.value }}</span></td>
+      <td class="muted">{{ run.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No runs yet.</p>
+{% endif %}
+
+<details class="panel" {% if prompt.test_cases and engines and not prompt.runs %}open{% endif %}>
+  <summary>Start a run</summary>
+  {% if not engines %}
+  <p class="muted">Add an engine on the <a href="/engines">Engines</a> page first.</p>
+  {% elif not prompt.test_cases %}
+  <p class="muted">Add or generate test cases first.</p>
+  {% else %}
+  <form method="post" action="/prompts/{{ prompt.id }}/runs" class="stack">
+    <label for="run-version">Version</label>
+    <select name="version_id" id="run-version">
+      {% for v in prompt.versions | reverse %}<option value="{{ v.id }}">v{{ v.version }}{% if loop.first %} (latest){% endif %}{% if v.notes %} · {{ v.notes }}{% endif %}</option>{% endfor %}
+    </select>
+    <fieldset class="checks">
+      <legend>Engines <span class="muted">(run in parallel, each within its own limits)</span></legend>
+      {% for e in engines %}
+      <label><input type="checkbox" name="engine_ids" value="{{ e.id }}" {% if loop.first %}checked{% endif %}> {{ e.name }} <code class="muted">{{ e.model }}</code></label>
+      {% endfor %}
+    </fieldset>
+    <fieldset class="checks">
+      <legend>Test cases</legend>
+      {% for cat in categories %}
+      {% set n = prompt.test_cases | selectattr('category', 'equalto', cat) | list | length %}
+      <label><input type="checkbox" name="categories" value="{{ cat.value }}" {% if n %}checked{% else %}disabled{% endif %}> {{ cat.value }} ({{ n }})</label>
+      {% endfor %}
+    </fieldset>
+    <div><button type="submit">Start run</button></div>
+  </form>
+  {% endif %}
+</details>
 {% endblock %}

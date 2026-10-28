@@ -1,0 +1,53 @@
+{# Re-rendered by polling while the run is active; the last render has no trigger, so polling stops. #}
+<div {% if active %}hx-get="/runs/{{ run.id }}/progress" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <div class="run-status">
+    <span class="badge status-{{ run.status.value }}">{{ run.status.value }}</span>
+    <progress max="{{ total }}" value="{{ finished }}"></progress>
+    <span class="muted">{{ finished }} / {{ total }}{% if failed %} · {{ failed }} failed{% endif %}</span>
+    {% if active %}
+    <form method="post" action="/runs/{{ run.id }}/cancel" class="inline"><button type="submit" class="secondary">Cancel</button></form>
+    {% elif failed %}
+    <form method="post" action="/runs/{{ run.id }}/retry" class="inline"><button type="submit" class="secondary">Retry {{ failed }} failed</button></form>
+    {% endif %}
+  </div>
+
+  <table>
+    <thead><tr><th>Engine</th><th>Progress</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
+    <tbody>
+      {% for s in summaries %}
+      <tr>
+        <td><strong>{{ s.name }}</strong> <code class="muted">{{ s.model }}</code></td>
+        <td>{{ s.finished }} / {{ s.total }}{% if s.errors %} <span class="status-bad">· {{ s.errors }} failed</span>{% endif %}</td>
+        <td>{{ s.avg_latency_ms }} ms</td>
+        <td>{{ s.input_tokens }} / {{ s.output_tokens }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Results</h2>
+  <table class="results">
+    <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Output</th></tr></thead>
+    <tbody>
+      {% for r in run.results %}
+      <tr>
+        <td>{{ r.test_case_name }} <span class="badge">{{ r.category.value }}</span></td>
+        <td>{{ r.engine_name }}</td>
+        <td><span class="badge status-{{ r.status.value }}">{{ r.status.value }}</span>{% if r.status.value == 'done' %}<br><span class="muted">{{ r.latency_ms }} ms{% if r.attempts > 1 %} · {{ r.attempts }} tries{% endif %}</span>{% endif %}</td>
+        <td class="clip">
+          {% if r.error %}<span class="status-bad">{{ r.error }}</span>{% endif %}
+          {% if r.output %}
+          <details>
+            <summary>{{ r.output | truncate(100) }}</summary>
+            {% if r.system_text %}<h4>System</h4><pre>{{ r.system_text }}</pre>{% endif %}
+            <h4>User</h4><pre>{{ r.user_text }}</pre>
+            <h4>Output</h4><pre>{{ r.output }}</pre>
+            {% if r.stop_reason %}<p class="muted">Stop reason: {{ r.stop_reason }} · {{ r.input_tokens }} in / {{ r.output_tokens }} out</p>{% endif %}
+          </details>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

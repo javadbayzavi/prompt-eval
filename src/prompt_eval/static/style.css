@@ -143,3 +143,17 @@ button.secondary { color: var(--text); background: transparent; border: 1px soli
 .result-row td { border-bottom: 0; padding-top: 0; font-size: 13px; }
 .status-ok { color: #1a7f37; font-weight: 500; }
 .status-bad { color: #cf222e; font-weight: 500; }
+
+.checks { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.checks label { display: flex; align-items: center; gap: 6px; font-weight: 400; margin: 0; }
+.checks input { width: auto; }
+
+.run-status { display: flex; align-items: center; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+progress { width: 220px; height: 10px; accent-color: var(--accent); }
+
+.status-done, .status-completed { color: #1a7f37; border-color: #1a7f37; }
+.status-error, .status-cancelled, .status-interrupted { color: #cf222e; border-color: #cf222e; }
+.status-running, .status-queued, .status-pending { color: var(--accent); border-color: var(--accent); }
+
+table.results details summary { cursor: pointer; }
+table.results h4 { margin: 10px 0 4px; }

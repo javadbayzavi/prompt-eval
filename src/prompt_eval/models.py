@@ -101,6 +101,11 @@ class Prompt(SQLModel, table=True):
         cascade_delete=True,
         sa_relationship_kwargs={"order_by": "TestCase.id"},
     )
+    runs: list["Run"] = Relationship(
+        back_populates="prompt",
+        cascade_delete=True,
+        sa_relationship_kwargs={"order_by": "Run.id.desc()"},
+    )
 
     @property
     def latest_version(self) -> "PromptVersion | None":
@@ -136,3 +141,82 @@ class TestCase(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
     prompt: Prompt = Relationship(back_populates="test_cases")
+
+
+class RunStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    INTERRUPTED = "interrupted"  # the server stopped while it was running
+
+    @property
+    def active(self) -> bool:
+        return self in (RunStatus.QUEUED, RunStatus.RUNNING)
+
+
+class ResultStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    DONE = "done"
+    ERROR = "error"
+    CANCELLED = "cancelled"
+
+
+class Run(SQLModel, table=True):
+    """One prompt version run on a set of test cases, on one or more engines."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    prompt_id: int = Field(foreign_key="prompt.id", index=True, ondelete="CASCADE")
+    prompt_version_id: int = Field(foreign_key="promptversion.id", ondelete="CASCADE")
+    engine_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    status: RunStatus = RunStatus.QUEUED
+    created_at: datetime = Field(default_factory=utcnow)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+    prompt: Prompt = Relationship(back_populates="runs")
+    version: PromptVersion = Relationship()
+    results: list["RunResult"] = Relationship(
+        back_populates="run",
+        cascade_delete=True,
+        # Created test case by test case, so id order groups each case's engines together.
+        sa_relationship_kwargs={"order_by": "RunResult.id"},
+    )
+
+
+class RunResult(SQLModel, table=True):
+    """One test case on one engine.
+
+    Test case and engine details are copied in, so results stay readable after those
+    are edited or deleted, and the rendered prompt is exactly what was sent.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    run_id: int = Field(foreign_key="run.id", index=True, ondelete="CASCADE")
+    test_case_id: int | None = Field(
+        default=None, foreign_key="testcase.id", index=True, ondelete="SET NULL"
+    )
+    engine_id: int | None = Field(default=None, foreign_key="engine.id", ondelete="SET NULL")
+
+    test_case_name: str
+    category: TestCaseCategory = TestCaseCategory.NORMAL
+    inputs: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
+    criteria: str = ""
+    expected_output: str = ""
+    engine_name: str
+    model: str
+    system_text: str = ""
+    user_text: str
+
+    status: ResultStatus = ResultStatus.PENDING
+    output: str = ""
+    stop_reason: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    latency_ms: int = 0
+    attempts: int = 0
+    error: str = ""
+    finished_at: datetime | None = None
+
+    run: Run = Relationship(back_populates="results")
