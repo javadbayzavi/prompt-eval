@@ -88,6 +88,41 @@
 {% endif %}
 
 <details class="panel">
+  <summary>Generate test cases</summary>
+  {% if engines %}
+  <form class="stack" hx-post="/prompts/{{ prompt.id }}/generate" hx-target="#generated" hx-indicator="#generating" hx-disabled-elt="find button">
+    <div class="grid">
+      <div class="stack">
+        <label for="gen-engine">Engine</label>
+        <select name="engine_id" id="gen-engine">
+          {% for e in engines %}<option value="{{ e.id }}">{{ e.name }} ({{ e.model }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="stack">
+        <label for="gen-count">How many</label>
+        <input name="count" id="gen-count" type="number" min="1" max="{{ max_test_cases }}" value="10">
+      </div>
+      {% for cat, share in default_mix.items() %}
+      <div class="stack">
+        <label for="gen-mix-{{ cat.value }}">{{ cat.value | capitalize }} %</label>
+        <input name="mix_{{ cat.value }}" id="gen-mix-{{ cat.value }}" type="number" min="0" max="100" value="{{ share }}">
+      </div>
+      {% endfor %}
+    </div>
+    <label for="gen-guidance">Guidance <span class="muted">(optional: what to focus on, languages, domains…)</span></label>
+    <textarea name="guidance" id="gen-guidance" rows="2"></textarea>
+    <div>
+      <button type="submit">Generate preview</button>
+      <span id="generating" class="htmx-indicator muted">Generating… this can take a minute.</span>
+    </div>
+  </form>
+  <div id="generated"></div>
+  {% else %}
+  <p class="muted">Add an engine on the <a href="/engines">Engines</a> page first.</p>
+  {% endif %}
+</details>
+
+<details class="panel">
   <summary>Add test case</summary>
   <form method="post" action="/prompts/{{ prompt.id }}/test-cases" class="stack">
     <label for="tc-name">Name</label>

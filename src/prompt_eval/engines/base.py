@@ -9,6 +9,9 @@ class ChatRequest:
     user: str
     system: str = ""
     max_tokens: int | None = None  # None: use the engine's configured default
+    # When set, the provider constrains the reply to JSON matching this schema
+    # (all object properties required, additionalProperties false).
+    json_schema: dict | None = None
 
 
 @dataclass

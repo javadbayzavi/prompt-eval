@@ -25,12 +25,16 @@ class OutputFormat(StrEnum):
 
 
 class TestCaseCategory(StrEnum):
+    __test__ = False  # not a pytest test class
+
     NORMAL = "normal"
     EDGE = "edge"
     ADVERSARIAL = "adversarial"
 
 
 class TestCaseSource(StrEnum):
+    __test__ = False
+
     MANUAL = "manual"
     GENERATED = "generated"
 

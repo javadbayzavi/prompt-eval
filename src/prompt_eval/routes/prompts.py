@@ -2,8 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlmodel import select
 
+from prompt_eval.generation import DEFAULT_MIX, MAX_TEST_CASES
 from prompt_eval.models import (
+    Engine,
     OutputFormat,
     Project,
     Prompt,
@@ -61,6 +64,9 @@ def show_prompt(request: Request, session: SessionDep, prompt_id: int) -> HTMLRe
             "variables": variables,
             "output_formats": list(OutputFormat),
             "categories": list(TestCaseCategory),
+            "engines": session.exec(select(Engine).order_by(Engine.name)).all(),
+            "default_mix": DEFAULT_MIX,
+            "max_test_cases": MAX_TEST_CASES,
         },
     )
 

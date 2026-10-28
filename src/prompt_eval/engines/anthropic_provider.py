@@ -41,8 +41,13 @@ class AnthropicProvider:
         }
         if request.system:
             kwargs["system"] = request.system
+        output_config: dict = {}
         if self.effort:
-            kwargs["output_config"] = {"effort": self.effort}
+            output_config["effort"] = self.effort
+        if request.json_schema:
+            output_config["format"] = {"type": "json_schema", "schema": request.json_schema}
+        if output_config:
+            kwargs["output_config"] = output_config
 
         started = time.perf_counter()
         try:

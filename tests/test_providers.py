@@ -200,3 +200,40 @@ async def test_anthropic_success_sends_effort_and_reads_text():
     assert seen["body"]["output_config"] == {"effort": "low"}
     assert seen["body"]["system"] == "sys"
     assert "temperature" not in seen["body"]
+
+
+@pytest.mark.anyio
+async def test_openai_compatible_sends_json_schema():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}]})
+
+    schema = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+    await openai_provider(handler).complete(ChatRequest(user="x", json_schema=schema))
+    assert seen["body"]["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {"name": "output", "strict": True, "schema": schema},
+    }
+
+
+@pytest.mark.anyio
+async def test_anthropic_sends_json_schema_with_effort():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return httpx2.Response(
+            400, json={"type": "error", "error": {"type": "invalid_request_error", "message": "x"}}
+        )
+
+    schema = {"type": "object", "properties": {}, "required": [], "additionalProperties": False}
+    with pytest.raises(EngineError):
+        await anthropic_provider(handler, effort="high").complete(
+            ChatRequest(user="x", json_schema=schema)
+        )
+    assert seen["body"]["output_config"] == {
+        "effort": "high",
+        "format": {"type": "json_schema", "schema": schema},
+    }

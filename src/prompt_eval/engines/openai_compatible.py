@@ -45,6 +45,11 @@ class OpenAICompatibleProvider:
         }
         if self.temperature is not None:
             body["temperature"] = self.temperature
+        if request.json_schema:
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {"name": "output", "strict": True, "schema": request.json_schema},
+            }
 
         started = time.perf_counter()
         try:
