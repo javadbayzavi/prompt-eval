@@ -134,3 +134,12 @@ td.clip { max-width: 360px; overflow-wrap: anywhere; }
 }
 
 hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 16px; }
+.hint { align-self: end; margin: 0; font-size: 13px; }
+
+button.secondary { color: var(--text); background: transparent; border: 1px solid var(--border); padding: 3px 10px; }
+
+.result-row td { border-bottom: 0; padding-top: 0; font-size: 13px; }
+.status-ok { color: #1a7f37; font-weight: 500; }
+.status-bad { color: #cf222e; font-weight: 500; }

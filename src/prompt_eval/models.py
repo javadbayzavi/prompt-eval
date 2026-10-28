@@ -35,6 +35,37 @@ class TestCaseSource(StrEnum):
     GENERATED = "generated"
 
 
+class EngineProvider(StrEnum):
+    ANTHROPIC = "anthropic"
+    OPENAI_COMPATIBLE = "openai_compatible"  # LM Studio, Ollama, vLLM, ...
+
+
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+
+
+class Engine(SQLModel, table=True):
+    """A model endpoint plus its limits. API keys stay in `.env`, never in the database."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
+    provider: EngineProvider
+    model: str
+    # openai_compatible only; blank uses LMSTUDIO_BASE_URL from settings.
+    base_url: str = ""
+    max_tokens: int = 8192
+    # anthropic only (the API no longer accepts temperature).
+    effort: str = ""
+    # openai_compatible only.
+    temperature: float | None = None
+    max_concurrency: int = 2
+    requests_per_minute: int | None = None
+    tokens_per_minute: int | None = None
+    max_retries: int = 5
+    timeout_seconds: float = 600.0
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
 class Project(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)

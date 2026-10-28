@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_button %}
+
+{% block title %}Engines · Prompt Eval{% endblock %}
+
+{% block content %}
+<h1>Engines</h1>
+<p class="muted">Models that prompts run on, or that generate test cases and judge outputs. Each engine has its own limits, shared by everything running on it.</p>
+
+{% if engines %}
+<table>
+  <thead><tr><th>Name</th><th>Provider</th><th>Model</th><th>Limits</th><th></th></tr></thead>
+  <tbody>
+    {% for e in engines %}
+    <tr>
+      <td><strong>{{ e.name }}</strong></td>
+      <td><span class="badge">{{ e.provider.value }}</span></td>
+      <td><code>{{ e.model }}</code>{% if e.effort %} <span class="muted">· effort {{ e.effort }}</span>{% endif %}</td>
+      <td class="muted">
+        {{ e.max_concurrency }} parallel
+        {% if e.requests_per_minute %}· {{ e.requests_per_minute }} req/min{% endif %}
+        {% if e.tokens_per_minute %}· {{ e.tokens_per_minute }} tok/min{% endif %}
+      </td>
+      <td class="actions">
+        <button type="button" class="secondary" hx-post="/engines/{{ e.id }}/test" hx-target="#test-{{ e.id }}" hx-indicator="#test-{{ e.id }}">Test</button>
+        <a href="/engines/{{ e.id }}/edit">Edit</a>
+        {{ delete_button("/engines/%d/delete" % e.id, "engine") }}
+      </td>
+    </tr>
+    <tr class="result-row"><td colspan="5" id="test-{{ e.id }}"><span class="htmx-indicator muted">Testing…</span></td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No engines yet. Add Claude and your LM Studio model below.</p>
+{% endif %}
+
+<details class="panel" {% if not engines %}open{% endif %}>
+  <summary>New engine</summary>
+  <form method="post" action="/engines" class="stack">
+    {% include "engines/_form.html" %}
+    <div><button type="submit">Add engine</button></div>
+  </form>
+</details>
+{% endblock %}

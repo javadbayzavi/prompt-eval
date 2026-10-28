@@ -16,6 +16,19 @@ uv run uvicorn prompt_eval.main:create_app --factory --reload
 
 Then open http://localhost:8000.
 
+## Engines
+
+An engine is a model endpoint plus its limits. Add them on the **Engines** page:
+
+- **Anthropic**: model id (e.g. `claude-opus-5-5`) and optional effort. The key is read from
+  `ANTHROPIC_API_KEY` in `.env`; keys are never stored in the database.
+- **OpenAI-compatible** (LM Studio and similar): model name and base URL (defaults to
+  `LMSTUDIO_BASE_URL`).
+
+Each engine has its own parallel-request cap, optional requests/min and tokens/min limits,
+and retries with exponential backoff on 429/5xx (honouring `retry-after`; a 429 pauses the
+whole engine). All work on one engine shares these limits.
+
 ## Development
 
 ```bash

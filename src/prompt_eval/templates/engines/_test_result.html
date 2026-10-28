@@ -1,0 +1,9 @@
+{% if error %}
+<span class="status-bad">✗ {{ error }}</span>
+{% elif response.refused %}
+<span class="status-bad">✗ The model refused the request.</span>
+{% else %}
+<span class="status-ok">✓ {{ response.latency_ms }} ms</span>
+<span class="muted">· {{ response.model }} · {{ response.input_tokens }} in / {{ response.output_tokens }} out{% if response.attempts > 1 %} · {{ response.attempts }} attempts{% endif %}</span>
+<code>{{ response.text | truncate(80) }}</code>
+{% endif %}

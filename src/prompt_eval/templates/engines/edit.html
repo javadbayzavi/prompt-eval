@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{{ engine.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+<p class="crumbs"><a href="/engines">Engines</a> /</p>
+<h1>Edit {{ engine.name }}</h1>
+
+<form method="post" action="/engines/{{ engine.id }}" class="stack panel">
+  {% include "engines/_form.html" %}
+  <div>
+    <button type="submit">Save</button>
+    <a href="/engines">Cancel</a>
+  </div>
+</form>
+{% endblock %}
