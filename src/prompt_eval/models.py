@@ -90,6 +90,12 @@ class Prompt(SQLModel, table=True):
     output_schema: str = ""
     # Static checks as [{name, weight, param}]; None means the defaults for the format.
     static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    # Final score = static_weight% of the static score + the rest from the judge.
+    static_weight: float = 30.0
+    judge_engine_id: int | None = Field(default=None, foreign_key="engine.id", ondelete="SET NULL")
+    # Judge criteria as [{name, description, weight}]; None means the defaults.
+    judge_criteria: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    judge_instructions: str = ""
     created_at: datetime = Field(default_factory=utcnow)
 
     project: Project = Relationship(back_populates="prompts")
@@ -176,6 +182,10 @@ class Run(SQLModel, table=True):
     output_format: OutputFormat = OutputFormat.TEXT
     output_schema: str = ""
     static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    static_weight: float = 100.0
+    judge_engine_id: int | None = Field(default=None, foreign_key="engine.id", ondelete="SET NULL")
+    judge_criteria: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    judge_instructions: str = ""
     status: RunStatus = RunStatus.QUEUED
     created_at: datetime = Field(default_factory=utcnow)
     started_at: datetime | None = None
@@ -228,5 +238,13 @@ class RunResult(SQLModel, table=True):
     # 0-100; None until scored (and for failed results).
     static_score: float | None = None
     static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    judge_score: float | None = None
+    # [{name, weight, score (0-10), reasoning}]
+    judge_scores: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    judge_summary: str = ""
+    # What in the prompt likely caused the problems, according to the judge.
+    judge_prompt_issues: str = ""
+    judge_error: str = ""
+    final_score: float | None = None
 
     run: Run = Relationship(back_populates="results")

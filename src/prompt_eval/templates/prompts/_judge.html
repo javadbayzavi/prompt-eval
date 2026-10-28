@@ -1,0 +1,50 @@
+<div id="judge">
+  <p class="muted">
+    A judge model grades each output on these criteria (0–10 each, with reasoning).
+    The final score mixes the static score and the judge score.
+  </p>
+  <form class="stack" hx-post="/prompts/{{ prompt.id }}/judge" hx-target="#judge" hx-swap="outerHTML">
+    <div class="grid">
+      <div class="stack">
+        <label for="judge-engine">Judge engine</label>
+        <select name="judge_engine_id" id="judge-engine">
+          <option value="">None (static score only)</option>
+          {% for e in judge_engines %}
+          <option value="{{ e.id }}" {% if prompt.judge_engine_id == e.id %}selected{% endif %}>{{ e.name }} ({{ e.model }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="stack">
+        <label for="static-weight">Final score: static share %</label>
+        <input name="static_weight" id="static-weight" inputmode="decimal" value="{{ prompt.static_weight | round(1) }}">
+        <span class="muted hint">The judge gets the rest.</span>
+      </div>
+    </div>
+
+    <table class="checks-table">
+      <thead><tr><th>Criterion</th><th>What the judge looks for</th><th>Weight %</th></tr></thead>
+      <tbody>
+        {% for row in criterion_rows %}
+        <tr>
+          <td><input name="crit_name_{{ loop.index0 }}" value="{{ row.name }}" aria-label="Criterion {{ loop.index }} name"></td>
+          <td><textarea name="crit_desc_{{ loop.index0 }}" rows="2" aria-label="Criterion {{ loop.index }} description">{{ row.description }}</textarea></td>
+          <td><input name="crit_weight_{{ loop.index0 }}" value="{{ row.weight }}" inputmode="decimal" class="narrow" aria-label="Criterion {{ loop.index }} weight"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <label for="judge-instructions">Extra grading instructions <span class="muted">(optional)</span></label>
+    <textarea name="judge_instructions" id="judge-instructions" rows="2">{{ prompt.judge_instructions }}</textarea>
+
+    {% if problems %}
+    <ul class="status-bad">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% elif saved %}
+    <p class="status-ok">✓ {{ saved }} New runs use these settings; use “Re-judge” on a run to apply them to it.</p>
+    {% endif %}
+    <div>
+      <button type="submit">Save judge settings</button>
+      {% if not criteria_default %}<button type="submit" name="reset" value="1" class="secondary">Reset criteria</button>{% endif %}
+    </div>
+  </form>
+</div>

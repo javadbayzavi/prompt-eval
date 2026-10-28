@@ -141,8 +141,12 @@
   </form>
 </details>
 <details class="panel" id="scoring-panel">
-  <summary>Scoring: static checks</summary>
+  <summary>Scoring</summary>
+  <h3>Static checks</h3>
   {% include "prompts/_scoring.html" %}
+  <hr>
+  <h3>Judge and final score</h3>
+  {% include "prompts/_judge.html" %}
 </details>
 
 <h2 id="runs">Runs</h2>

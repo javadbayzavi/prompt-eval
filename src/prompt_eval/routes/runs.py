@@ -31,14 +31,24 @@ class EngineSummary:
     input_tokens: int = 0
     output_tokens: int = 0
     static_scores: list[float] = field(default_factory=list)
+    judge_scores: list[float] = field(default_factory=list)
+    final_scores: list[float] = field(default_factory=list)
+
+    @staticmethod
+    def _avg(values: list[float]) -> float | None:
+        return round(sum(values) / len(values), 1) if values else None
 
     @property
     def avg_static(self) -> float | None:
-        return (
-            round(sum(self.static_scores) / len(self.static_scores), 1)
-            if self.static_scores
-            else None
-        )
+        return self._avg(self.static_scores)
+
+    @property
+    def avg_judge(self) -> float | None:
+        return self._avg(self.judge_scores)
+
+    @property
+    def avg_final(self) -> float | None:
+        return self._avg(self.final_scores)
 
     @property
     def finished(self) -> int:
@@ -57,8 +67,13 @@ def summarize(run: Run) -> list[EngineSummary]:
         if r.status == ResultStatus.DONE:
             s.done += 1
             s.latency_ms += r.latency_ms
-            if r.static_score is not None:
-                s.static_scores.append(r.static_score)
+            for score, values in (
+                (r.static_score, s.static_scores),
+                (r.judge_score, s.judge_scores),
+                (r.final_score, s.final_scores),
+            ):
+                if score is not None:
+                    values.append(score)
         elif r.status in (ResultStatus.ERROR, ResultStatus.CANCELLED):
             s.errors += 1
         s.input_tokens += r.input_tokens

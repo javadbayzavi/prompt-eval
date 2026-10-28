@@ -177,3 +177,6 @@ table.results h4 { margin: 10px 0 4px; }
 .check-list li { margin-bottom: 4px; }
 .check-list .pass { color: #1a7f37; }
 .check-list .fail { color: #cf222e; }
+.judge-list { min-width: 280px; max-width: 420px; }
+.judge-note { font-size: 13px; margin: 6px 0 0; max-width: 420px; }
+h3 { margin: 8px 0; }

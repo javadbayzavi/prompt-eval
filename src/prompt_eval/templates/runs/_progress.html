@@ -8,18 +8,21 @@
     <form method="post" action="/runs/{{ run.id }}/cancel" class="inline"><button type="submit" class="secondary">Cancel</button></form>
     {% else %}
     {% if failed %}<form method="post" action="/runs/{{ run.id }}/retry" class="inline"><button type="submit" class="secondary">Retry {{ failed }} failed</button></form>{% endif %}
-    <form method="post" action="/runs/{{ run.id }}/rescore" class="inline"><button type="submit" class="secondary" title="Apply the prompt's current scoring settings">Rescore</button></form>
+    <form method="post" action="/runs/{{ run.id }}/rescore" class="inline"><button type="submit" class="secondary" title="Apply the prompt's current static checks and score split (no model calls)">Rescore</button></form>
+    {% if run.prompt.judge_engine_id %}<form method="post" action="/runs/{{ run.id }}/rejudge" class="inline" onsubmit="return confirm('Judge every output again with the current judge settings? This calls the judge model once per result.')"><button type="submit" class="secondary">Re-judge</button></form>{% endif %}
     {% endif %}
   </div>
 
   <table>
-    <thead><tr><th>Engine</th><th>Progress</th><th>Static score</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
+    <thead><tr><th>Engine</th><th>Progress</th><th>Final</th><th>Static</th><th>Judge</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
     <tbody>
       {% for s in summaries %}
       <tr>
         <td><strong>{{ s.name }}</strong> <code class="muted">{{ s.model }}</code></td>
         <td>{{ s.finished }} / {{ s.total }}{% if s.errors %} <span class="status-bad">· {{ s.errors }} failed</span>{% endif %}</td>
-        <td>{% if s.avg_static is not none %}<strong>{{ s.avg_static }}</strong>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{% if s.avg_final is not none %}<span class="score-pill" style="--score: {{ s.avg_final }}">{{ s.avg_final }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td>{{ s.avg_static if s.avg_static is not none else '—' }}</td>
+        <td>{{ s.avg_judge if s.avg_judge is not none else '—' }}</td>
         <td>{{ s.avg_latency_ms }} ms</td>
         <td>{{ s.input_tokens }} / {{ s.output_tokens }}</td>
       </tr>
@@ -29,13 +32,18 @@
 
   <h2>Results</h2>
   <table class="results">
-    <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Static</th><th>Output</th></tr></thead>
+    <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Final</th><th>Static</th><th>Judge</th><th>Output</th></tr></thead>
     <tbody>
       {% for r in run.results %}
       <tr>
         <td>{{ r.test_case_name }} <span class="badge">{{ r.category.value }}</span></td>
         <td>{{ r.engine_name }}</td>
         <td><span class="badge status-{{ r.status.value }}">{{ r.status.value }}</span>{% if r.status.value == 'done' %}<br><span class="muted">{{ r.latency_ms }} ms{% if r.attempts > 1 %} · {{ r.attempts }} tries{% endif %}</span>{% endif %}</td>
+        <td>
+          {% if r.final_score is not none %}<span class="score-pill" style="--score: {{ r.final_score }}">{{ r.final_score | round | int }}</span>
+          {% elif r.status.value == 'done' and run.judge_engine_id and not r.judge_error %}<span class="muted">judging…</span>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
         <td>
           {% if r.static_score is not none %}
           <details class="score">
@@ -46,6 +54,21 @@
               {% endfor %}
             </ul>
           </details>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td>
+          {% if r.judge_score is not none %}
+          <details class="score">
+            <summary><span class="score-pill" style="--score: {{ r.judge_score }}">{{ r.judge_score | round | int }}</span></summary>
+            <ul class="check-list judge-list">
+              {% for c in r.judge_scores %}
+              <li><strong>{{ c.name }}</strong> {{ c.score | round(1) }}/10 <span class="muted">({{ c.weight | round(1) }}%)</span><br><span class="muted">{{ c.reasoning }}</span></li>
+              {% endfor %}
+            </ul>
+            {% if r.judge_summary %}<p class="judge-note">{{ r.judge_summary }}</p>{% endif %}
+            {% if r.judge_prompt_issues %}<p class="judge-note"><strong>Prompt issue:</strong> {{ r.judge_prompt_issues }}</p>{% endif %}
+          </details>
+          {% elif r.judge_error %}<span class="status-bad" title="{{ r.judge_error }}">✗ {{ r.judge_error | truncate(60) }}</span>
           {% else %}<span class="muted">—</span>{% endif %}
         </td>
         <td class="clip">

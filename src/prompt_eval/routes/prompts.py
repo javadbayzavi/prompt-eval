@@ -13,7 +13,7 @@ from prompt_eval.models import (
     PromptVersion,
     TestCaseCategory,
 )
-from prompt_eval.routes.scoring import rows_from_config, scoring_context
+from prompt_eval.routes.scoring import judge_context, rows_from_config, scoring_context
 from prompt_eval.templating import find_variables
 from prompt_eval.web import SessionDep, get_or_404, redirect, require_text, templates
 
@@ -69,6 +69,7 @@ def show_prompt(request: Request, session: SessionDep, prompt_id: int) -> HTMLRe
             "default_mix": DEFAULT_MIX,
             "max_test_cases": MAX_TEST_CASES,
             **scoring_context(prompt, rows_from_config(prompt)),
+            **judge_context(session, prompt),
         },
     )
 

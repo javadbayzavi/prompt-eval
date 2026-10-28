@@ -6,7 +6,7 @@ import logging
 from sqlalchemy.engine import Engine as DbEngine
 from sqlmodel import Session, select
 
-from prompt_eval import static_checks
+from prompt_eval import judge, static_checks
 from prompt_eval.engines import ChatRequest, EngineError, EngineRegistry
 from prompt_eval.models import (
     Engine,
@@ -38,7 +38,8 @@ def create_run(
         prompt_version_id=version.id,
         engine_ids=[e.id for e in engines],
     )
-    snapshot_scoring(run, prompt)
+    snapshot_static(run, prompt)
+    snapshot_judge(run, prompt)
     for tc in test_cases:
         system_text = render(version.system_prompt, tc.inputs)
         user_text = render(version.template, tc.inputs)
@@ -63,22 +64,39 @@ def create_run(
     return run
 
 
-def snapshot_scoring(run: Run, prompt) -> None:
+def snapshot_static(run: Run, prompt) -> None:
     run.output_format = prompt.output_format
     run.output_schema = prompt.output_schema
     run.static_checks = static_checks.configs_to_json(static_checks.prompt_config(prompt))
+    run.static_weight = prompt.static_weight if prompt.judge_engine_id else 100.0
+
+
+def snapshot_judge(run: Run, prompt) -> None:
+    run.judge_engine_id = prompt.judge_engine_id
+    run.judge_criteria = prompt.judge_criteria
+    run.judge_instructions = prompt.judge_instructions
+    run.static_weight = prompt.static_weight if prompt.judge_engine_id else 100.0
 
 
 def rescore(session: Session, run: Run) -> int:
-    """Re-apply the prompt's current scoring settings to a run's finished results."""
-    snapshot_scoring(run, run.prompt)
+    """Re-apply the prompt's current static checks and weights; judge scores are kept."""
+    snapshot_static(run, run.prompt)
     scored = 0
     for result in run.results:
         if result.status == ResultStatus.DONE:
             static_checks.score_result(result, run)
+            result.final_score = judge.final_score(result, run)
             scored += 1
     session.commit()
     return scored
+
+
+def clear_judgement(result: RunResult) -> None:
+    result.judge_score = None
+    result.judge_scores = None
+    result.judge_summary = ""
+    result.judge_prompt_issues = ""
+    result.judge_error = ""
 
 
 class RunManager:
@@ -116,6 +134,15 @@ class RunManager:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
+    def start_rejudge(self, run_id: int) -> bool:
+        """Judge every finished result again with the prompt's current judge settings."""
+        if run_id in self.tasks:
+            return False
+        task = asyncio.create_task(self._rejudge(run_id), name=f"rejudge-{run_id}")
+        self.tasks[run_id] = task
+        task.add_done_callback(lambda _: self.tasks.pop(run_id, None))
+        return True
+
     def retry_failed(self, run_id: int) -> int:
         """Reset errored or cancelled results to pending and start the run again."""
         with Session(self.db) as session:
@@ -126,6 +153,7 @@ class RunManager:
             for result in failed:
                 result.status = ResultStatus.PENDING
                 result.error = ""
+                clear_judgement(result)
             if failed:
                 run.status = RunStatus.QUEUED
                 run.finished_at = None
@@ -161,6 +189,27 @@ class RunManager:
 
         try:
             await asyncio.gather(*(self._run_one(result_id) for result_id in pending))
+        except asyncio.CancelledError:
+            self._finish(run_id, RunStatus.CANCELLED)
+            raise
+        self._finish(run_id, RunStatus.COMPLETED)
+
+    async def _rejudge(self, run_id: int) -> None:
+        with Session(self.db) as session:
+            run = session.get(Run, run_id)
+            if run is None:
+                return
+            snapshot_judge(run, run.prompt)
+            run.status = RunStatus.RUNNING
+            done = [r for r in run.results if r.status == ResultStatus.DONE]
+            for result in done:
+                clear_judgement(result)
+                result.final_score = judge.final_score(result, run)
+            session.commit()
+            done_ids = [r.id for r in done]
+
+        try:
+            await asyncio.gather(*(self._judge(result_id) for result_id in done_ids))
         except asyncio.CancelledError:
             self._finish(run_id, RunStatus.CANCELLED)
             raise
@@ -216,9 +265,59 @@ class RunManager:
             result.attempts = response.attempts
             if response.refused:
                 self._save(session, result, error="The model refused to answer")
-            else:
-                static_checks.score_result(result, result.run)
-                self._save(session, result)
+                return
+            static_checks.score_result(result, result.run)
+            result.final_score = judge.final_score(result, result.run)
+            self._save(session, result)
+            needs_judge = result.run.judge_engine_id is not None
+
+        if needs_judge:
+            await self._judge(result_id)
+
+    async def _judge(self, result_id: int) -> None:
+        with Session(self.db) as session:
+            result = session.get(RunResult, result_id)
+            run = result.run
+            engine = session.get(Engine, run.judge_engine_id) if run.judge_engine_id else None
+            if engine is None:
+                result.judge_error = "The judge engine was deleted"
+                session.commit()
+                return
+            criteria = judge.criteria_from_json(run.judge_criteria)
+            request = judge.build_request(result, run, run.prompt, criteria, run.judge_instructions)
+            session.expunge(engine)
+
+        try:
+            client = await self.engines.get(engine)
+            response = await client.complete(request)
+            if response.refused:
+                raise EngineError("The judge model refused to grade this output")
+            verdict = judge.parse_verdict(response.text, criteria)
+        except EngineError as e:
+            with Session(self.db) as session:
+                result = session.get(RunResult, result_id)
+                result.judge_error = str(e)
+                session.commit()
+            return
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.exception("Judging result %s failed", result_id)
+            with Session(self.db) as session:
+                result = session.get(RunResult, result_id)
+                result.judge_error = f"Unexpected: {e!r}"
+                session.commit()
+            return
+
+        with Session(self.db) as session:
+            result = session.get(RunResult, result_id)
+            result.judge_score = verdict.score
+            result.judge_scores = verdict.criteria_json()
+            result.judge_summary = verdict.summary
+            result.judge_prompt_issues = verdict.prompt_issues
+            result.judge_error = ""
+            result.final_score = judge.final_score(result, result.run)
+            session.commit()
 
     @staticmethod
     def _save(session: Session, result: RunResult, *, error: str = "") -> None:
