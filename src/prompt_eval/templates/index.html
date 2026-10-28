@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Prompt Eval</h1>
+<p class="muted">Define prompts, generate test cases, run them on your engines, and score the results.</p>
+
+<ol class="pipeline">
+  <li><strong>Define</strong> a project, its prompts, and the expected output format.</li>
+  <li><strong>Generate</strong> test cases for each prompt.</li>
+  <li><strong>Run</strong> a prompt version on one or more engines.</li>
+  <li><strong>Score</strong> outputs with weighted static checks and an LLM judge.</li>
+  <li><strong>Review</strong> the report and the suggested prompt changes.</li>
+</ol>
+{% endblock %}
