@@ -6,18 +6,20 @@
     <span class="muted">{{ finished }} / {{ total }}{% if failed %} · {{ failed }} failed{% endif %}</span>
     {% if active %}
     <form method="post" action="/runs/{{ run.id }}/cancel" class="inline"><button type="submit" class="secondary">Cancel</button></form>
-    {% elif failed %}
-    <form method="post" action="/runs/{{ run.id }}/retry" class="inline"><button type="submit" class="secondary">Retry {{ failed }} failed</button></form>
+    {% else %}
+    {% if failed %}<form method="post" action="/runs/{{ run.id }}/retry" class="inline"><button type="submit" class="secondary">Retry {{ failed }} failed</button></form>{% endif %}
+    <form method="post" action="/runs/{{ run.id }}/rescore" class="inline"><button type="submit" class="secondary" title="Apply the prompt's current scoring settings">Rescore</button></form>
     {% endif %}
   </div>
 
   <table>
-    <thead><tr><th>Engine</th><th>Progress</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
+    <thead><tr><th>Engine</th><th>Progress</th><th>Static score</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
     <tbody>
       {% for s in summaries %}
       <tr>
         <td><strong>{{ s.name }}</strong> <code class="muted">{{ s.model }}</code></td>
         <td>{{ s.finished }} / {{ s.total }}{% if s.errors %} <span class="status-bad">· {{ s.errors }} failed</span>{% endif %}</td>
+        <td>{% if s.avg_static is not none %}<strong>{{ s.avg_static }}</strong>{% else %}<span class="muted">—</span>{% endif %}</td>
         <td>{{ s.avg_latency_ms }} ms</td>
         <td>{{ s.input_tokens }} / {{ s.output_tokens }}</td>
       </tr>
@@ -27,13 +29,25 @@
 
   <h2>Results</h2>
   <table class="results">
-    <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Output</th></tr></thead>
+    <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Static</th><th>Output</th></tr></thead>
     <tbody>
       {% for r in run.results %}
       <tr>
         <td>{{ r.test_case_name }} <span class="badge">{{ r.category.value }}</span></td>
         <td>{{ r.engine_name }}</td>
         <td><span class="badge status-{{ r.status.value }}">{{ r.status.value }}</span>{% if r.status.value == 'done' %}<br><span class="muted">{{ r.latency_ms }} ms{% if r.attempts > 1 %} · {{ r.attempts }} tries{% endif %}</span>{% endif %}</td>
+        <td>
+          {% if r.static_score is not none %}
+          <details class="score">
+            <summary><span class="score-pill" style="--score: {{ r.static_score }}">{{ r.static_score | round | int }}</span></summary>
+            <ul class="check-list">
+              {% for c in r.static_checks %}
+              <li class="{{ 'pass' if c.score >= 1 else 'fail' }}">{{ '✓' if c.score >= 1 else '✗' }} {{ c.label }} <span class="muted">({{ c.weight | round(1) }}%)</span><br><span class="muted">{{ c.detail }}</span></li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
         <td class="clip">
           {% if r.error %}<span class="status-bad">{{ r.error }}</span>{% endif %}
           {% if r.output %}

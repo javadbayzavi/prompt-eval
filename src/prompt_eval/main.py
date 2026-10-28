@@ -8,7 +8,16 @@ from fastapi.staticfiles import StaticFiles
 from prompt_eval.config import Settings, get_settings
 from prompt_eval.db import init_db, make_engine
 from prompt_eval.engines import EngineRegistry
-from prompt_eval.routes import engines, generation, home, projects, prompts, runs, test_cases
+from prompt_eval.routes import (
+    engines,
+    generation,
+    home,
+    projects,
+    prompts,
+    runs,
+    scoring,
+    test_cases,
+)
 from prompt_eval.runner import RunManager
 from prompt_eval.web import BASE_DIR
 
@@ -35,6 +44,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.runs = run_manager
 
     app.mount("/static", StaticFiles(directory=Path(BASE_DIR, "static")), name="static")
-    for module in (home, projects, prompts, test_cases, engines, generation, runs):
+    for module in (home, projects, prompts, test_cases, engines, generation, runs, scoring):
         app.include_router(module.router)
     return app

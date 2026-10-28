@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -30,6 +30,15 @@ class EngineSummary:
     latency_ms: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    static_scores: list[float] = field(default_factory=list)
+
+    @property
+    def avg_static(self) -> float | None:
+        return (
+            round(sum(self.static_scores) / len(self.static_scores), 1)
+            if self.static_scores
+            else None
+        )
 
     @property
     def finished(self) -> int:
@@ -48,6 +57,8 @@ def summarize(run: Run) -> list[EngineSummary]:
         if r.status == ResultStatus.DONE:
             s.done += 1
             s.latency_ms += r.latency_ms
+            if r.static_score is not None:
+                s.static_scores.append(r.static_score)
         elif r.status in (ResultStatus.ERROR, ResultStatus.CANCELLED):
             s.errors += 1
         s.input_tokens += r.input_tokens

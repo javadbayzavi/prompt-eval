@@ -1,0 +1,31 @@
+<div id="scoring">
+  <p class="muted">
+    Static checks score each output by rules for its format (<strong>{{ prompt.output_format.value }}</strong>).
+    Each enabled check gets a share of the static score; the shares must add up to 100%.
+    {% if is_default %}These are the defaults for this format.{% endif %}
+  </p>
+  <form class="stack" hx-post="/prompts/{{ prompt.id }}/scoring" hx-target="#scoring" hx-swap="outerHTML">
+    <table class="checks-table">
+      <thead><tr><th>On</th><th>Check</th><th>Weight %</th><th>Setting</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><input type="checkbox" name="enabled__{{ row.name }}" {% if row.enabled %}checked{% endif %} aria-label="Enable {{ row.spec.label }}"></td>
+          <td><strong>{{ row.spec.label }}</strong><br><span class="muted">{{ row.spec.help }}</span></td>
+          <td><input name="weight__{{ row.name }}" value="{{ row.weight }}" inputmode="decimal" class="narrow" aria-label="{{ row.spec.label }} weight"></td>
+          <td>{% if row.spec.param_label %}<input name="param__{{ row.name }}" value="{{ row.param }}" placeholder="{{ row.spec.param_label }}" class="mono" aria-label="{{ row.spec.label }} {{ row.spec.param_label }}">{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if problems %}
+    <ul class="status-bad">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% elif saved %}
+    <p class="status-ok">✓ {{ saved }} New runs use these settings; use “Rescore” on a run to apply them to it.</p>
+    {% endif %}
+    <div>
+      <button type="submit">Save checks</button>
+      {% if not is_default %}<button type="submit" name="reset" value="1" class="secondary">Reset to defaults</button>{% endif %}
+    </div>
+  </form>
+</div>

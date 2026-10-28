@@ -157,3 +157,23 @@ progress { width: 220px; height: 10px; accent-color: var(--accent); }
 
 table.results details summary { cursor: pointer; }
 table.results h4 { margin: 10px 0 4px; }
+
+.checks-table input.narrow { width: 80px; }
+.checks-table td:first-child input { width: auto; }
+
+.score summary { cursor: pointer; list-style: none; }
+.score-pill {
+  display: inline-block;
+  min-width: 36px;
+  padding: 1px 8px;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 999px;
+  /* Red at 0, amber at 50, green at 100. */
+  color: #fff;
+  background: hsl(calc(var(--score) * 1.2) 60% 40%);
+}
+.check-list { list-style: none; padding: 0; margin: 6px 0 0; min-width: 220px; font-size: 13px; }
+.check-list li { margin-bottom: 4px; }
+.check-list .pass { color: #1a7f37; }
+.check-list .fail { color: #cf222e; }

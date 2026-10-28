@@ -6,6 +6,7 @@ import logging
 from sqlalchemy.engine import Engine as DbEngine
 from sqlmodel import Session, select
 
+from prompt_eval import static_checks
 from prompt_eval.engines import ChatRequest, EngineError, EngineRegistry
 from prompt_eval.models import (
     Engine,
@@ -31,11 +32,13 @@ def create_run(
     test_cases: list[TestCase],
 ) -> Run:
     """Create a run with one pending result per test case and engine (not started)."""
+    prompt = version.prompt
     run = Run(
         prompt_id=version.prompt_id,
         prompt_version_id=version.id,
         engine_ids=[e.id for e in engines],
     )
+    snapshot_scoring(run, prompt)
     for tc in test_cases:
         system_text = render(version.system_prompt, tc.inputs)
         user_text = render(version.template, tc.inputs)
@@ -58,6 +61,24 @@ def create_run(
     session.add(run)
     session.commit()
     return run
+
+
+def snapshot_scoring(run: Run, prompt) -> None:
+    run.output_format = prompt.output_format
+    run.output_schema = prompt.output_schema
+    run.static_checks = static_checks.configs_to_json(static_checks.prompt_config(prompt))
+
+
+def rescore(session: Session, run: Run) -> int:
+    """Re-apply the prompt's current scoring settings to a run's finished results."""
+    snapshot_scoring(run, run.prompt)
+    scored = 0
+    for result in run.results:
+        if result.status == ResultStatus.DONE:
+            static_checks.score_result(result, run)
+            scored += 1
+    session.commit()
+    return scored
 
 
 class RunManager:
@@ -196,6 +217,7 @@ class RunManager:
             if response.refused:
                 self._save(session, result, error="The model refused to answer")
             else:
+                static_checks.score_result(result, result.run)
                 self._save(session, result)
 
     @staticmethod

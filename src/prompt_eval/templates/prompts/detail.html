@@ -140,6 +140,11 @@
     <div><button type="submit">Add test case</button></div>
   </form>
 </details>
+<details class="panel" id="scoring-panel">
+  <summary>Scoring: static checks</summary>
+  {% include "prompts/_scoring.html" %}
+</details>
+
 <h2 id="runs">Runs</h2>
 {% if prompt.runs %}
 <table>

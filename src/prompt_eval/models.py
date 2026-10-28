@@ -88,6 +88,8 @@ class Prompt(SQLModel, table=True):
     output_format: OutputFormat = OutputFormat.TEXT
     # Optional JSON Schema (for JSON/YAML) or a free-form description of the expected shape.
     output_schema: str = ""
+    # Static checks as [{name, weight, param}]; None means the defaults for the format.
+    static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
     created_at: datetime = Field(default_factory=utcnow)
 
     project: Project = Relationship(back_populates="prompts")
@@ -170,6 +172,10 @@ class Run(SQLModel, table=True):
     prompt_id: int = Field(foreign_key="prompt.id", index=True, ondelete="CASCADE")
     prompt_version_id: int = Field(foreign_key="promptversion.id", ondelete="CASCADE")
     engine_ids: list[int] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    # Scoring settings copied from the prompt when the run is created (or rescored).
+    output_format: OutputFormat = OutputFormat.TEXT
+    output_schema: str = ""
+    static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
     status: RunStatus = RunStatus.QUEUED
     created_at: datetime = Field(default_factory=utcnow)
     started_at: datetime | None = None
@@ -218,5 +224,9 @@ class RunResult(SQLModel, table=True):
     attempts: int = 0
     error: str = ""
     finished_at: datetime | None = None
+
+    # 0-100; None until scored (and for failed results).
+    static_score: float | None = None
+    static_checks: list[dict] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
 
     run: Run = Relationship(back_populates="results")
