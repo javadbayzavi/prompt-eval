@@ -95,6 +95,40 @@ model first.
 6. **Report and suggestions**: read why each test scored as it did, then **Suggest
    improvements** → **Save as the next version** → run again → **Compare**.
 
+### Importing a project
+
+**Projects → Import** creates a project with its prompts, versions, scoring settings and test
+cases from one JSON file (upload it or paste it). Everything is checked the way the pages check
+it (check and criterion weights add up to 100, a schema check needs a schema, every test case
+fills every variable of the latest version, a judge engine must already exist); if anything is
+wrong, the problems are listed and nothing is saved.
+
+```json
+{
+  "format": "prompt-eval/1",
+  "project": {"name": "Support", "description": ""},
+  "prompts": [{
+    "name": "Classify ticket",
+    "task_description": "Classify a support ticket.",
+    "output_format": "json",
+    "output_schema": {"type": "object", "required": ["label"]},
+    "static_checks": [{"name": "parse", "weight": 50}, {"name": "schema", "weight": 50}],
+    "static_weight": 30,
+    "judge_engine": "Opus judge",
+    "judge_criteria": [{"name": "Correctness", "description": "Right label", "weight": 100}],
+    "judge_instructions": "",
+    "versions": [{"system_prompt": "", "template": "Ticket: {{ticket}}", "notes": ""}],
+    "test_cases": [{"name": "refund", "category": "normal", "inputs": {"ticket": "..."},
+                    "criteria": "Labels it billing", "expected_output": ""}]
+  }]
+}
+```
+
+Only `project.name`, each prompt's `name` and one version's `template` are required. Without
+`static_checks` or `judge_criteria` the defaults apply. Versions are numbered in order, so the
+last one is the latest. Check names are the ones on the Scoring tab: `not_empty`, `finished`,
+`parse`, `no_wrapping`, `schema`, `max_length`, `regex`, `forbidden_regex`.
+
 ### Choosing limits
 
 Press **Test** on the Engines page: it shows the per-minute limits the provider reports for

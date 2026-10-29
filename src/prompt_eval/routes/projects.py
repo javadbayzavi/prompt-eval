@@ -1,9 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select
 
+from prompt_eval import importing
 from prompt_eval.models import Project
 from prompt_eval.web import SessionDep, get_or_404, redirect, require_text, templates
 
@@ -30,6 +31,29 @@ def create_project(
     project = Project(name=require_text(name, "Name"), description=description.strip())
     session.add(project)
     session.commit()
+    return redirect(f"/projects/{project.id}")
+
+
+# Before /projects/{project_id}, so "import" is not read as a project id.
+@router.get("/projects/import", response_class=HTMLResponse)
+def import_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "projects/import.html", {"format": importing.FORMAT})
+
+
+@router.post("/projects/import", response_model=None)
+async def import_project(
+    request: Request,
+    session: SessionDep,
+    file: Annotated[UploadFile | None, File()] = None,
+    content: Annotated[str, Form()] = "",
+) -> HTMLResponse | RedirectResponse:
+    """Creates a project from a JSON file (or pasted JSON); problems are shown, nothing saved."""
+    text = (await file.read()).decode("utf-8") if file and file.filename else content
+    try:
+        project = importing.import_project(session, importing.parse(text))
+    except importing.InvalidImport as e:
+        context = {"format": importing.FORMAT, "problems": e.problems, "content": text}
+        return templates.TemplateResponse(request, "projects/import.html", context, status_code=400)
     return redirect(f"/projects/{project.id}")
 
 
