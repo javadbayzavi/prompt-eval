@@ -116,3 +116,33 @@ def test_validate_config():
 @pytest.mark.parametrize("has_schema", [True, False])
 def test_defaults_are_valid(fmt, has_schema):
     assert sc.validate_config(sc.default_config(fmt, has_schema), fmt) == []
+
+
+def test_parse_rejects_double_encoded_json():
+    text = json.dumps(json.dumps({"pattern": "none", "direction": None}))
+    outcome = run("parse", out(text))
+    assert outcome.score == 0.0
+    assert outcome.detail.startswith("Double-encoded")
+
+
+@pytest.mark.parametrize(
+    "text,kind",
+    [('"hello"', "a string"), ("42", "a number"), ("true", "true/false"), ("null", "null")],
+)
+def test_parse_rejects_bare_json_values(text, kind):
+    outcome = run("parse", out(text))
+    assert outcome.score == 0.0
+    assert outcome.detail == f"Valid JSON, but {kind}, not an object or array"
+
+
+def test_parse_accepts_arrays():
+    assert run("parse", out("[1, 2]")).score == 1.0
+
+
+def test_schema_decides_top_level_type():
+    # A double-encoded object fails the usual object schema, with a schema error.
+    double = json.dumps(json.dumps({"label": "billing"}))
+    outcome = run("schema", out(double))
+    assert outcome.score == 0.0 and "is not of type 'object'" in outcome.detail
+    # A schema that asks for a string accepts one.
+    assert run("schema", out('"ok"', schema='{"type": "string"}')).score == 1.0

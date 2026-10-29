@@ -74,14 +74,30 @@ def strip_fences(text: str) -> str:
     return match.group(1) if match else text.strip()
 
 
-def parse_structured(output: Output) -> object:
-    """Parse after removing code fences; raises ValueError with a readable message."""
+JSON_TYPE_NAMES = {str: "a string", int: "a number", float: "a number", bool: "true/false"}
+
+
+def parse_structured(output: Output, *, json_container: bool = True) -> object:
+    """Parse after removing code fences; raises ValueError with a readable message.
+
+    With `json_container`, JSON must be an object or array: a bare string or number is valid
+    JSON but almost always a broken answer (often an object encoded twice, as a string).
+    """
     body = strip_fences(output.text)
     if output.output_format == OutputFormat.JSON:
         try:
-            return json.loads(body)
+            data = json.loads(body)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON: {e.msg} (line {e.lineno}, column {e.colno})") from e
+        if json_container and not isinstance(data, dict | list):
+            if isinstance(data, str) and isinstance(_try_json(data), dict | list):
+                raise ValueError(
+                    "Double-encoded: the output is a JSON string that contains JSON, "
+                    "not the object itself"
+                )
+            kind = "null" if data is None else JSON_TYPE_NAMES.get(type(data), "a scalar")
+            raise ValueError(f"Valid JSON, but {kind}, not an object or array")
+        return data
     if output.output_format == OutputFormat.YAML:
         try:
             data = yaml.safe_load(body)
@@ -97,6 +113,13 @@ def parse_structured(output: Output) -> object:
         except Exception as e:  # ParseError and defusedxml's security errors
             raise ValueError(f"Invalid XML: {e}") from e
     raise ValueError(f"{output.output_format.value} has no parser")
+
+
+def _try_json(text: str) -> object:
+    try:
+        return json.loads(text)
+    except ValueError:
+        return None
 
 
 def check_not_empty(output: Output, _param: str) -> Outcome:
@@ -145,7 +168,8 @@ def check_schema(output: Output, _param: str) -> Outcome:
     except (ValueError, SchemaError) as e:
         return Outcome(0.0, f"The prompt's output schema is not a valid JSON Schema: {e}")
     try:
-        data = parse_structured(output)
+        # The schema decides which top-level types are allowed, so don't require a container.
+        data = parse_structured(output, json_container=False)
     except ValueError as e:
         return Outcome(0.0, f"Can't validate: {e}")
     errors = sorted(validator.iter_errors(data), key=lambda err: list(err.path))
@@ -190,7 +214,7 @@ CHECKS: dict[str, CheckSpec] = {
     ),
     "parse": CheckSpec(
         "Parses",
-        "The output parses in the expected format (code fences allowed).",
+        "Parses in the expected format (code fences allowed); JSON must be an object or array.",
         STRUCTURED,
         check_parse,
     ),
