@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% from "runs/_macros.html" import score, delta %}
+{% set section = "projects" %}
+{% set active_project_id = after.prompt.project.id %}
+{% set active_prompt_id = after.prompt.id %}
+
+{% block title %}Compare runs · Prompt Eval{% endblock %}
+
+{% block content %}
+{% set prompt = after.prompt %}
+{{ page_header(
+  "Run #%d (v%d) → Run #%d (v%d)" % (before.id, before.version.version, after.id, after.version.version),
+  crumbs=[("Projects", "/projects"), (prompt.project.name, "/projects/%d" % prompt.project.id), (prompt.name, "/prompts/%d" % prompt.id), ("Runs", "/prompts/%d/runs" % prompt.id)],
+  subtitle="Final scores, matched by test case and engine.",
+) }}
+
+<section class="card flush">
+  <div class="card-header"><h2>By engine</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Engine</th><th><a href="/runs/{{ before.id }}/report">Run #{{ before.id }}</a></th><th><a href="/runs/{{ after.id }}/report">Run #{{ after.id }}</a></th><th>Change</th></tr></thead>
+      <tbody>
+        {% for row in engine_rows %}
+        <tr><td><strong>{{ row.engine }}</strong></td><td>{{ score(row.before) }}</td><td>{{ score(row.after) }}</td><td>{{ delta(row.delta) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card flush">
+  <div class="card-header"><h2>By test case</h2><span class="muted small">Biggest drops first</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Test case</th><th>Engine</th><th>Run #{{ before.id }}</th><th>Run #{{ after.id }}</th><th>Change</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr><td>{{ row.test_case }}</td><td>{{ row.engine }}</td><td>{{ score(row.before) }}</td><td>{{ score(row.after) }}</td><td>{{ delta(row.delta) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

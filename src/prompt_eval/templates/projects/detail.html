@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, empty %}
+{% set section = "projects" %}
+{% set active_project_id = project.id %}
+
+{% block title %}{{ project.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% call page_header(project.name, crumbs=[("Projects", "/projects")], subtitle=project.description) %}
+  <a class="btn secondary" href="/projects/{{ project.id }}/settings">Settings</a>
+  <a class="btn" href="/projects/{{ project.id }}/prompts/new">+ New prompt</a>
+{% endcall %}
+
+{% if project.prompts %}
+<div class="card flush table-wrap">
+  <table>
+    <thead><tr><th>Prompt</th><th>Format</th><th>Versions</th><th>Test cases</th><th>Runs</th></tr></thead>
+    <tbody>
+      {% for prompt in project.prompts %}
+      <tr>
+        <td><a href="/prompts/{{ prompt.id }}"><strong>{{ prompt.name }}</strong></a>{% if prompt.task_description %}<br><span class="muted small">{{ prompt.task_description | truncate(90) }}</span>{% endif %}</td>
+        <td><span class="badge accent">{{ prompt.output_format.value }}</span></td>
+        <td>{{ prompt.versions | length }}</td>
+        <td>{{ prompt.test_cases | length }}</td>
+        <td>{{ prompt.runs | length }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+{{ empty("No prompts yet", "Add the prompt you want to evaluate.", "/projects/%d/prompts/new" % project.id, "+ New prompt") }}
+{% endif %}
+{% endblock %}

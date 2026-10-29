@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_button, select %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Settings · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if saved %}<div class="alert ok narrow">✓ Saved.</div>{% endif %}
+
+<form method="post" action="/prompts/{{ prompt.id }}" class="card form narrow">
+  <div class="field">
+    <label for="name">Name</label>
+    <input name="name" id="name" value="{{ prompt.name }}" required>
+  </div>
+  <div class="field">
+    <label for="task_description">What should it do?</label>
+    <textarea name="task_description" id="task_description" rows="3">{{ prompt.task_description }}</textarea>
+  </div>
+  <div class="field">
+    <label for="output_format">Expected output format</label>
+    {{ select("output_format", output_formats, prompt.output_format) }}
+  </div>
+  <div class="field">
+    <label for="output_schema">Output schema</label>
+    <textarea name="output_schema" id="output_schema" rows="8" class="mono">{{ prompt.output_schema }}</textarea>
+    <span class="help">A JSON Schema for JSON or YAML output.</span>
+  </div>
+  <div class="form-actions"><button type="submit">Save</button></div>
+</form>
+
+<div class="card danger-zone narrow">
+  <div class="card-header">
+    <div><h2>Delete prompt</h2><p class="muted">Deletes its versions, test cases and runs.</p></div>
+    {{ delete_button("/prompts/%d/delete" % prompt.id, "prompt and everything in it") }}
+  </div>
+</div>
+{% endblock %}

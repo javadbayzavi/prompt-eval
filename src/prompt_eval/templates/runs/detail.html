@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_button %}
+{% set section = "projects" %}
+{% set active_project_id = run.prompt.project.id %}
+{% set active_prompt_id = run.prompt.id %}
+{% set run_tab = "results" %}
+
+{% block title %}Run #{{ run.id }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "runs/_header.html" %}
+
+<div id="progress">
+  {% include "runs/_progress.html" %}
+</div>
+
+<details class="card">
+  <summary>Prompt v{{ run.version.version }} used in this run</summary>
+  {% if run.version.system_prompt %}<h4>System</h4><pre>{{ run.version.system_prompt }}</pre>{% endif %}
+  <h4>Prompt</h4>
+  <pre>{{ run.version.template }}</pre>
+</details>
+
+{% if not active %}
+<div class="card danger-zone">
+  <div class="card-header">
+    <div><h2>Delete run</h2><p class="muted">Deletes this run and all its results.</p></div>
+    {{ delete_button("/runs/%d/delete" % run.id, "run and its results") }}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,86 @@
+{# Shared engine form fields; `engine` is None when creating. #}
+<datalist id="model-suggestions">
+  {% for model in model_suggestions %}<option value="{{ model }}">{% endfor %}
+</datalist>
+
+<section class="card form">
+  <h2>Model</h2>
+  <div class="form-row">
+    <div class="field">
+      <label for="name">Name</label>
+      <input name="name" id="name" value="{{ engine.name if engine else '' }}" required placeholder="e.g. sonnet">
+    </div>
+    <div class="field">
+      <label for="provider">Provider</label>
+      <select name="provider" id="provider">
+        {% for p in providers %}
+        <option value="{{ p.value }}" {% if engine and engine.provider == p %}selected{% endif %}>
+          {{ 'Anthropic' if p.value == 'anthropic' else 'OpenAI-compatible (LM Studio)' }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field">
+      <label for="model">Model</label>
+      <input name="model" id="model" list="model-suggestions" value="{{ engine.model if engine else '' }}" required placeholder="claude-sonnet-5-5">
+    </div>
+    <div class="field">
+      <label for="max_tokens">Max output tokens</label>
+      <input name="max_tokens" id="max_tokens" inputmode="numeric" value="{{ engine.max_tokens if engine else 16000 }}">
+    </div>
+  </div>
+</section>
+
+<section class="card form">
+  <h2>Provider options</h2>
+  <div class="form-row">
+    <div class="field">
+      <label for="effort">Effort <span class="help">(Anthropic)</span></label>
+      <select name="effort" id="effort">
+        <option value="">Model default</option>
+        {% for level in effort_levels %}
+        <option value="{{ level }}" {% if engine and engine.effort == level %}selected{% endif %}>{{ level }}</option>
+        {% endfor %}
+      </select>
+      <span class="help">The API key comes from <code>ANTHROPIC_API_KEY</code> in <code>.env</code>.</span>
+    </div>
+    <div class="field">
+      <label for="base_url">Base URL <span class="help">(OpenAI-compatible)</span></label>
+      <input name="base_url" id="base_url" value="{{ engine.base_url if engine else '' }}" placeholder="http://localhost:1234/v1">
+      <span class="help">Blank uses <code>LMSTUDIO_BASE_URL</code>.</span>
+    </div>
+    <div class="field">
+      <label for="temperature">Temperature <span class="help">(OpenAI-compatible)</span></label>
+      <input name="temperature" id="temperature" inputmode="decimal" value="{{ engine.temperature if engine and engine.temperature is not none else '' }}">
+    </div>
+  </div>
+</section>
+
+<section class="card form">
+  <h2>Limits</h2>
+  <div class="form-row">
+    <div class="field">
+      <label for="max_concurrency">Parallel requests</label>
+      <input name="max_concurrency" id="max_concurrency" inputmode="numeric" value="{{ engine.max_concurrency if engine else 4 }}">
+    </div>
+    <div class="field">
+      <label for="requests_per_minute">Requests / min</label>
+      <input name="requests_per_minute" id="requests_per_minute" inputmode="numeric" value="{{ (engine.requests_per_minute or '') if engine else '' }}" placeholder="no limit">
+    </div>
+    <div class="field">
+      <label for="tokens_per_minute">Tokens / min</label>
+      <input name="tokens_per_minute" id="tokens_per_minute" inputmode="numeric" value="{{ (engine.tokens_per_minute or '') if engine else '' }}" placeholder="no limit">
+    </div>
+    <div class="field">
+      <label for="max_retries">Max retries</label>
+      <input name="max_retries" id="max_retries" inputmode="numeric" value="{{ engine.max_retries if engine else 5 }}">
+    </div>
+    <div class="field">
+      <label for="timeout_seconds">Timeout (s)</label>
+      <input name="timeout_seconds" id="timeout_seconds" inputmode="decimal" value="{{ engine.timeout_seconds | int if engine else 600 }}">
+    </div>
+  </div>
+  <span class="help">Set these a little below your account's limits. A 429 from the provider pauses the whole engine and retries after the wait it asks for.</span>
+</section>

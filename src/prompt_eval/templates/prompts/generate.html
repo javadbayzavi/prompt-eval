@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Generate test cases · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if engines %}
+<form class="card form" hx-post="/prompts/{{ prompt.id }}/generate" hx-target="#generated" hx-indicator="#generating" hx-disabled-elt="find button">
+  <div>
+    <h2>Generate test cases</h2>
+    <p class="muted small">A model writes test cases from the prompt's description, format and text{% if variables %}, filling {% for v in variables %}<code>{{ '{{' }}{{ v }}{{ '}}' }}</code>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}. You review them before anything is saved.</p>
+  </div>
+  <div class="form-row">
+    <div class="field">
+      <label for="gen-engine">Engine</label>
+      <select name="engine_id" id="gen-engine">
+        {% for e in engines %}<option value="{{ e.id }}" {% if e.id == prompt.judge_engine_id %}selected{% endif %}>{{ e.name }} ({{ e.model }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="gen-count">How many</label>
+      <input name="count" id="gen-count" type="number" min="1" max="{{ max_test_cases }}" value="10">
+    </div>
+  </div>
+  <div class="field">
+    <span class="label">Mix (%)</span>
+    <div class="form-row">
+      {% for cat, share in default_mix.items() %}
+      <div class="field">
+        <label for="gen-mix-{{ cat.value }}" class="help">{{ cat.value | capitalize }}</label>
+        <input name="mix_{{ cat.value }}" id="gen-mix-{{ cat.value }}" type="number" min="0" max="100" value="{{ share }}">
+      </div>
+      {% endfor %}
+    </div>
+    <span class="help">Normal: typical inputs. Edge: unusual but valid. Adversarial: inputs that try to break the prompt.</span>
+  </div>
+  <div class="field">
+    <label for="gen-guidance">Guidance <span class="help">(optional)</span></label>
+    <textarea name="guidance" id="gen-guidance" rows="2" placeholder="What to focus on, languages, domains…"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="submit">✦ Generate preview</button>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/test-cases">Cancel</a>
+    <span id="generating" class="htmx-indicator muted">Generating… this can take a minute.</span>
+  </div>
+</form>
+<div id="generated"></div>
+{% else %}
+<div class="empty">
+  <strong>No engines yet</strong>
+  <span>Add a model on the Engines page to generate test cases.</span>
+  <div><a class="btn" href="/engines/new">+ Add engine</a></div>
+</div>
+{% endif %}
+{% endblock %}

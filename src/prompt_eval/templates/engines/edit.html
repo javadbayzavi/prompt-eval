@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% set section = "engines" %}
+
+{% block title %}{{ engine.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("Edit " ~ engine.name, crumbs=[("Engines", "/engines")]) }}
+
+<form method="post" action="/engines/{{ engine.id }}" class="form narrow">
+  {% include "engines/_form.html" %}
+  <div class="form-actions">
+    <button type="submit">Save</button>
+    <a class="btn secondary" href="/engines">Cancel</a>
+  </div>
+</form>
+{% endblock %}

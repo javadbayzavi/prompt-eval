@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% from "runs/_macros.html" import score %}
+{% set section = "projects" %}
+{% set active_project_id = run.prompt.project.id %}
+{% set active_prompt_id = run.prompt.id %}
+{% set run_tab = "report" %}
+
+{% block title %}Report · run #{{ run.id }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "runs/_header.html" %}
+
+{% if run.status.active %}<div class="alert warn">The run is still {{ run.status.value }}; this report is partial.</div>{% endif %}
+
+<div class="page-actions" style="margin-bottom: 16px;">
+  <span class="muted small">Final score = {{ run.static_weight | round(1) }}% static{% if run.judge_engine_id %} + {{ (100 - run.static_weight) | round(1) }}% judge{% endif %}</span>
+  <a class="btn secondary btn-sm" href="/runs/{{ run.id }}/report.md">⇩ Download Markdown</a>
+  {% if other_runs %}
+  <form method="get" action="/runs/{{ run.id }}/compare" class="page-actions">
+    <select name="other" aria-label="Run to compare with" style="width: auto;">
+      {% for r in other_runs %}<option value="{{ r.id }}">Run #{{ r.id }} · v{{ r.version.version }} · {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="secondary btn-sm">Compare</button>
+  </form>
+  {% endif %}
+</div>
+
+<section class="card flush">
+  <div class="card-header"><h2>Scores by engine</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Engine</th><th>Final</th><th>Static</th><th>Judge</th>
+        {% for cat in report.categories %}<th>{{ cat.value }}</th>{% endfor %}
+        <th>Failed</th><th>Avg latency</th>
+      </tr></thead>
+      <tbody>
+        {% for e in report.engines %}
+        <tr>
+          <td><strong>{{ e.name }}</strong><br><code class="muted small">{{ e.model }}</code></td>
+          <td>{{ score(e.avg_final) }}</td>
+          <td>{{ e.avg_static if e.avg_static is not none else '—' }}</td>
+          <td>{{ e.avg_judge if e.avg_judge is not none else '—' }}</td>
+          {% for cat in report.categories %}<td>{{ score(e.category_avg(cat)) }}</td>{% endfor %}
+          <td>{{ e.failed }} / {{ e.total }}</td>
+          <td>{{ e.avg_latency_ms ~ ' ms' if e.avg_latency_ms is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="two-col">
+  {% if report.checks %}
+  <section class="card flush">
+    <div class="card-header"><h2>Static checks: pass rate</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>Weight</th>{% for e in report.engines %}<th>{{ e.name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for check in report.checks %}
+          <tr>
+            <td>{{ check.label }}</td>
+            <td class="muted">{{ check.weight | round(1) }}%</td>
+            {% for e in report.engines %}{% set rate = check.per_engine.get(e.name) %}
+            <td>{% if rate %}{{ score(rate.percent) }}{% else %}—{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if report.criteria %}
+  <section class="card flush">
+    <div class="card-header"><h2>Judge criteria: average score (0–10)</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Criterion</th><th>Weight</th>{% for e in report.engines %}<th>{{ e.name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for crit in report.criteria %}
+          <tr>
+            <td>{{ crit.name }}</td>
+            <td class="muted">{{ crit.weight | round(1) }}%</td>
+            {% for e in report.engines %}{% set value = crit.avg_for(e.name) %}
+            <td>{% if value is not none %}{{ score((value * 10) | round(1)) }}{% else %}—{% endif %}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<section class="card" id="suggestions-panel">
+  <div class="card-header">
+    <div>
+      <h2>What to change in the prompt</h2>
+      <p class="muted small">A model reads this report (scores, failed checks, the judge's notes, the worst cases) and proposes changes and a revised prompt.</p>
+    </div>
+    {% if engines %}
+    <form class="page-actions" hx-post="/runs/{{ run.id }}/suggestions" hx-target="#suggestions" hx-indicator="#suggesting" hx-disabled-elt="find button">
+      <select name="engine_id" aria-label="Engine for suggestions" style="width: auto;">
+        {% for e in engines %}<option value="{{ e.id }}" {% if e.id == run.judge_engine_id %}selected{% endif %}>{{ e.name }}</option>{% endfor %}
+      </select>
+      <button type="submit">{{ 'Suggest again' if run.suggestions else '✦ Suggest improvements' }}</button>
+    </form>
+    {% endif %}
+  </div>
+  <p id="suggesting" class="htmx-indicator muted">Analysing… this can take a minute.</p>
+  <div id="suggestions">{% include "runs/_suggestions.html" %}</div>
+  {% if report.prompt_issues %}
+  <details class="expand" style="margin-top: 12px;">
+    <summary class="small">Prompt issues the judge raised ({{ report.prompt_issues | length }})</summary>
+    <ul class="reasons small">{% for tc, eng, issue in report.prompt_issues %}<li><strong>{{ tc }}</strong> <span class="muted">· {{ eng }}</span>: {{ issue }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
+
+<h2 style="margin: 24px 0 12px;">Every test, worst first</h2>
+{% for rr in report.results %}{% set r = rr.result %}
+<details class="card result-card" {% if loop.index <= 3 and r.final_score is not none and r.final_score < 70 %}open{% endif %}>
+  <summary>
+    {{ score(r.final_score) }}
+    <strong>{{ r.test_case_name }}</strong>
+    <span class="badge">{{ r.category.value }}</span>
+    <span class="muted">· {{ r.engine_name }}</span>
+    {% if r.status.value != 'done' %}<span class="text-bad">· {{ r.error or r.status.value }}</span>{% endif %}
+  </summary>
+  <div class="body">
+    <p class="muted small">
+      Static {{ r.static_score if r.static_score is not none else '—' }} ·
+      Judge {{ r.judge_score if r.judge_score is not none else '—' }}
+      {% if r.judge_error %}<span class="text-bad">· judge failed: {{ r.judge_error }}</span>{% endif %}
+    </p>
+    <h4>Why this score</h4>
+    <ul class="reasons">
+      {% for c in r.static_checks or [] %}
+      <li class="{{ 'pass' if c.score >= 1 else 'fail' }}">{{ '✓' if c.score >= 1 else '✗' }} <strong>{{ c.label }}</strong> ({{ c.weight | round(1) }}%): {{ c.detail }}</li>
+      {% endfor %}
+      {% for c in r.judge_scores or [] %}
+      <li><strong>{{ c.name }}</strong> {{ c.score | round(1) }}/10 ({{ c.weight | round(1) }}%): {{ c.reasoning }}</li>
+      {% endfor %}
+    </ul>
+    {% if r.judge_summary %}<p style="margin-top: 10px;"><strong>Judge:</strong> {{ r.judge_summary }}</p>{% endif %}
+    {% if r.judge_prompt_issues %}<p><strong>Prompt issue:</strong> {{ r.judge_prompt_issues }}</p>{% endif %}
+    {% if r.criteria %}<p><strong>Requirements:</strong> {{ r.criteria }}</p>{% endif %}
+    <div class="two-col">
+      <div><h4>Input</h4><pre>{{ r.user_text }}</pre></div>
+      <div><h4>Output</h4><pre>{{ r.output or '(none)' }}</pre></div>
+    </div>
+  </div>
+</details>
+{% endfor %}
+{% endblock %}

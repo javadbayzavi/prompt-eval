@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import select, variable_inputs %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}{{ test_case.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+<form method="post" action="/test-cases/{{ test_case.id }}" class="card form narrow">
+  <h2>Edit test case</h2>
+  <div class="form-row">
+    <div class="field">
+      <label for="name">Name</label>
+      <input name="name" id="name" value="{{ test_case.name }}" required>
+    </div>
+    <div class="field">
+      <label for="category">Category</label>
+      {{ select("category", categories, test_case.category) }}
+    </div>
+  </div>
+  <fieldset>
+    <legend>Inputs</legend>
+    {{ variable_inputs(variables, test_case.inputs) }}
+  </fieldset>
+  <div class="field">
+    <label for="criteria">Criteria</label>
+    <textarea name="criteria" id="criteria" rows="3">{{ test_case.criteria }}</textarea>
+  </div>
+  <div class="field">
+    <label for="expected_output">Expected output</label>
+    <textarea name="expected_output" id="expected_output" rows="4" class="mono">{{ test_case.expected_output }}</textarea>
+  </div>
+  <div class="form-actions">
+    <button type="submit">Save</button>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/test-cases">Cancel</a>
+  </div>
+</form>
+{% endblock %}

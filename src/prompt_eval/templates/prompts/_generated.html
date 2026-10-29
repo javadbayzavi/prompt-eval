@@ -1,0 +1,31 @@
+{% if error %}
+<div class="alert bad">✗ {{ error }}</div>
+{% elif not cases %}
+<div class="alert warn">The generator returned no test cases. Try again or add guidance.</div>
+{% else %}
+<form method="post" action="/prompts/{{ prompt.id }}/test-cases/bulk" class="card flush">
+  <div class="card-header">
+    <div>
+      <h2>{{ cases | length }} test cases from {{ engine.name }}</h2>
+      <p class="muted small">Untick any you don't want. You can edit them after saving.</p>
+    </div>
+    <button type="submit">Save selected</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th></th><th>Name</th><th>Category</th><th>Inputs</th><th>Criteria</th></tr></thead>
+      <tbody>
+        {% for case in cases %}
+        <tr>
+          <td><input type="checkbox" name="case" value="{{ encoded[loop.index0] }}" checked aria-label="Keep {{ case.name }}"></td>
+          <td><strong>{{ case.name }}</strong></td>
+          <td><span class="badge">{{ case.category.value }}</span></td>
+          <td class="clip small">{% for key, value in case.inputs.items() %}<code>{{ key }}</code>: {{ value | truncate(80) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+          <td class="clip small">{{ case.criteria }}{% if case.expected_output %}<br><span class="muted">Expected: {{ case.expected_output | truncate(80) }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</form>
+{% endif %}

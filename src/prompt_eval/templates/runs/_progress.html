@@ -1,0 +1,107 @@
+{# Re-rendered by polling while the run is active; the last render has no trigger, so polling stops. #}
+{% from "runs/_macros.html" import score %}
+<div {% if active %}hx-get="/runs/{{ run.id }}/progress" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <section class="card">
+    <div class="card-header" style="margin-bottom: 0;">
+      <div class="run-bar">
+        <span class="badge status-{{ run.status.value }}">{{ run.status.value }}</span>
+        <progress max="{{ total }}" value="{{ finished }}"></progress>
+        <span class="muted">{{ finished }} / {{ total }}{% if failed %} · <span class="text-bad">{{ failed }} failed</span>{% endif %}</span>
+      </div>
+      <div class="page-actions">
+        {% if active %}
+        <form method="post" action="/runs/{{ run.id }}/cancel" class="inline"><button type="submit" class="secondary btn-sm">Cancel</button></form>
+        {% else %}
+        {% if failed %}<form method="post" action="/runs/{{ run.id }}/retry" class="inline"><button type="submit" class="secondary btn-sm">Retry {{ failed }} failed</button></form>{% endif %}
+        <form method="post" action="/runs/{{ run.id }}/rescore" class="inline"><button type="submit" class="secondary btn-sm" title="Apply the prompt's current static checks and score split (no model calls)">Rescore</button></form>
+        {% if run.prompt.judge_engine_id %}<form method="post" action="/runs/{{ run.id }}/rejudge" class="inline" onsubmit="return confirm('Judge every output again with the current judge settings? This calls the judge model once per result.')"><button type="submit" class="secondary btn-sm">Re-judge</button></form>{% endif %}
+        <a class="btn btn-sm" href="/runs/{{ run.id }}/report">Open report →</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="card flush">
+    <div class="card-header"><h2>By engine</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Engine</th><th>Progress</th><th>Final</th><th>Static</th><th>Judge</th><th>Avg latency</th><th>Tokens in / out</th></tr></thead>
+        <tbody>
+          {% for s in summaries %}
+          <tr>
+            <td><strong>{{ s.name }}</strong><br><code class="muted small">{{ s.model }}</code></td>
+            <td>{{ s.finished }} / {{ s.total }}{% if s.errors %}<br><span class="text-bad small">{{ s.errors }} failed</span>{% endif %}</td>
+            <td>{{ score(s.avg_final) }}</td>
+            <td>{{ s.avg_static if s.avg_static is not none else '—' }}</td>
+            <td>{{ s.avg_judge if s.avg_judge is not none else '—' }}</td>
+            <td>{{ (s.avg_latency_ms ~ ' ms') if s.done else '—' }}</td>
+            <td>{{ s.input_tokens }} / {{ s.output_tokens }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card flush">
+    <div class="card-header"><h2>Results</h2><span class="muted small">Click a score or output to expand it.</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Test case</th><th>Engine</th><th>Status</th><th>Final</th><th>Static</th><th>Judge</th><th>Output</th></tr></thead>
+        <tbody>
+          {% for r in run.results %}
+          <tr>
+            <td><strong>{{ r.test_case_name }}</strong><br><span class="badge">{{ r.category.value }}</span></td>
+            <td>{{ r.engine_name }}</td>
+            <td><span class="badge status-{{ r.status.value }}">{{ r.status.value }}</span>{% if r.status.value == 'done' %}<br><span class="muted small">{{ r.latency_ms }} ms{% if r.attempts > 1 %} · {{ r.attempts }} tries{% endif %}</span>{% endif %}</td>
+            <td>
+              {% if r.final_score is not none %}{{ score(r.final_score | round(1)) }}
+              {% elif r.status.value == 'done' and run.judge_engine_id and not r.judge_error %}<span class="muted small">judging…</span>
+              {% else %}<span class="muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if r.static_score is not none %}
+              <details class="score">
+                <summary>{{ score(r.static_score | round(1)) }}</summary>
+                <ul class="check-list">
+                  {% for c in r.static_checks %}
+                  <li class="{{ 'pass' if c.score >= 1 else 'fail' }}">{{ '✓' if c.score >= 1 else '✗' }} {{ c.label }} <span class="muted">({{ c.weight | round(1) }}%)</span><br><span class="muted">{{ c.detail }}</span></li>
+                  {% endfor %}
+                </ul>
+              </details>
+              {% else %}<span class="muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% if r.judge_score is not none %}
+              <details class="score">
+                <summary>{{ score(r.judge_score | round(1)) }}</summary>
+                <ul class="check-list">
+                  {% for c in r.judge_scores %}
+                  <li><strong>{{ c.name }}</strong> {{ c.score | round(1) }}/10 <span class="muted">({{ c.weight | round(1) }}%)</span><br><span class="muted">{{ c.reasoning }}</span></li>
+                  {% endfor %}
+                </ul>
+                {% if r.judge_summary %}<p class="note">{{ r.judge_summary }}</p>{% endif %}
+                {% if r.judge_prompt_issues %}<p class="note"><strong>Prompt issue:</strong> {{ r.judge_prompt_issues }}</p>{% endif %}
+              </details>
+              {% elif r.judge_error %}<span class="text-bad small" title="{{ r.judge_error }}">✗ {{ r.judge_error | truncate(60) }}</span>
+              {% else %}<span class="muted">—</span>{% endif %}
+            </td>
+            <td class="clip">
+              {% if r.error %}<span class="text-bad small">{{ r.error }}</span>{% endif %}
+              {% if r.output %}
+              <details class="expand">
+                <summary class="small">{{ r.output | truncate(90) }}</summary>
+                {% if r.system_text %}<h4>System</h4><pre>{{ r.system_text }}</pre>{% endif %}
+                <h4>Input</h4><pre>{{ r.user_text }}</pre>
+                <h4>Output</h4><pre>{{ r.output }}</pre>
+                {% if r.stop_reason %}<p class="muted small" style="margin-top: 6px;">Stop reason: {{ r.stop_reason }} · {{ r.input_tokens }} in / {{ r.output_tokens }} out</p>{% endif %}
+              </details>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, empty %}
+{% set section = "projects" %}
+
+{% block title %}Projects · Prompt Eval{% endblock %}
+
+{% block content %}
+{% call page_header("Projects", subtitle="A project groups the prompts you evaluate together.") %}
+  <a class="btn" href="/projects/new">+ New project</a>
+{% endcall %}
+
+{% if projects %}
+<div class="grid-cards">
+  {% for project in projects %}
+  <a class="card" href="/projects/{{ project.id }}" style="text-decoration: none;">
+    <span class="card-link">{{ project.name }}</span>
+    <span class="muted small">{{ project.prompts | length }} prompt{{ '' if project.prompts | length == 1 else 's' }}</span>
+    {% if project.description %}<span class="muted">{{ project.description | truncate(140) }}</span>{% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+{{ empty("No projects yet", "Create a project, then add the prompts you want to evaluate.", "/projects/new", "+ New project") }}
+{% endif %}
+{% endblock %}

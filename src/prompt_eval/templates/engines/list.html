@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, delete_link %}
+{% set section = "engines" %}
+
+{% block title %}Engines · Prompt Eval{% endblock %}
+
+{% block content %}
+{% call page_header("Engines", subtitle="Models that run prompts, generate test cases and judge outputs. Each has its own limits, shared by everything that uses it.") %}
+  <a class="btn" href="/engines/new">+ New engine</a>
+{% endcall %}
+
+{% if engines %}
+<section class="card flush">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Model</th><th>Limits</th><th>Connection</th><th></th></tr></thead>
+      <tbody>
+        {% for e in engines %}
+        <tr>
+          <td><strong>{{ e.name }}</strong><br><span class="muted small">{{ 'Anthropic' if e.provider.value == 'anthropic' else 'OpenAI-compatible' }}</span></td>
+          <td><code>{{ e.model }}</code>{% if e.effort %}<br><span class="muted small">effort {{ e.effort }}</span>{% endif %}</td>
+          <td class="small muted">
+            {{ e.max_concurrency }} parallel
+            {% if e.requests_per_minute %}<br>{{ e.requests_per_minute }} req/min{% endif %}
+            {% if e.tokens_per_minute %}<br>{{ e.tokens_per_minute }} tok/min{% endif %}
+          </td>
+          <td id="test-{{ e.id }}" class="small">
+            <button type="button" class="secondary btn-sm" hx-post="/engines/{{ e.id }}/test" hx-target="#test-{{ e.id }}" hx-disabled-elt="this">Test</button>
+          </td>
+          <td class="actions">
+            <a href="/engines/{{ e.id }}/edit">Edit</a>
+            {{ delete_link("/engines/%d/delete" % e.id, "engine") }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<div class="empty">
+  <strong>No engines yet</strong>
+  <span>Add Claude (with the API key in .env) or a local model from LM Studio.</span>
+  <div><a class="btn" href="/engines/new">+ New engine</a></div>
+</div>
+{% endif %}
+{% endblock %}

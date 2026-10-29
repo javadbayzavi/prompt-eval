@@ -1,0 +1,34 @@
+{% if error %}
+<div class="alert bad">✗ {{ error }}</div>
+{% endif %}
+{% set s = run.suggestions %}
+{% if s %}
+<div class="form">
+  <div>
+    <h3>Diagnosis <span class="muted small" style="font-weight: 400;">· from {{ run.suggestions_engine }}</span></h3>
+    <p style="margin-top: 6px;">{{ s.diagnosis }}</p>
+  </div>
+  {% if s.changes %}
+  <div>
+    <h3>Changes</h3>
+    <ol class="changes">
+      {% for c in s.changes %}
+      <li><strong>{{ c.change }}</strong><br>{{ c.reason }}{% if c.addresses %}<br><span class="muted small">Addresses: {{ c.addresses }}</span>{% endif %}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+  {% for w in s.warnings %}<div class="alert warn">⚠ {{ w }}</div>{% endfor %}
+  <details class="expand">
+    <summary><strong>Revised prompt</strong> <span class="muted small">(compare with v{{ run.version.version }})</span></summary>
+    <div class="two-col">
+      <div><h4>Current (v{{ run.version.version }})</h4>{% if run.version.system_prompt %}<pre>{{ run.version.system_prompt }}</pre><br>{% endif %}<pre>{{ run.version.template }}</pre></div>
+      <div><h4>Suggested</h4>{% if s.revised_system_prompt %}<pre>{{ s.revised_system_prompt }}</pre><br>{% endif %}<pre>{{ s.revised_template }}</pre></div>
+    </div>
+  </details>
+  <form method="post" action="/runs/{{ run.id }}/suggestions/apply" class="form-actions">
+    <button type="submit">Save as the next version</button>
+    <span class="muted small">Then start a run on it and compare.</span>
+  </form>
+</div>
+{% endif %}

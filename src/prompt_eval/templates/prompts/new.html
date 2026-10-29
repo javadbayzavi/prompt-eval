@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, select %}
+{% set section = "projects" %}
+{% set active_project_id = project.id %}
+
+{% block title %}New prompt · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("New prompt", crumbs=[("Projects", "/projects"), (project.name, "/projects/%d" % project.id)]) }}
+
+<form method="post" action="/projects/{{ project.id }}/prompts" class="form narrow">
+  <section class="card form">
+    <h2>About the prompt</h2>
+    <div class="field">
+      <label for="name">Name</label>
+      <input name="name" id="name" required autofocus placeholder="e.g. Chart pattern detector">
+    </div>
+    <div class="field">
+      <label for="task_description">What should it do?</label>
+      <textarea name="task_description" id="task_description" rows="3"></textarea>
+      <span class="help">Used to generate test cases and by the judge.</span>
+    </div>
+  </section>
+
+  <section class="card form">
+    <h2>Expected output</h2>
+    <div class="field">
+      <label for="output_format">Format</label>
+      {{ select("output_format", output_formats, output_formats[0]) }}
+    </div>
+    <div class="field">
+      <label for="output_schema">Schema <span class="help">(optional)</span></label>
+      <textarea name="output_schema" id="output_schema" rows="6" class="mono" placeholder='{"type": "object", "required": ["..."]}'></textarea>
+      <span class="help">A JSON Schema for JSON or YAML output. Outputs are checked against it.</span>
+    </div>
+  </section>
+
+  <section class="card form">
+    <h2>Prompt text</h2>
+    <div class="field">
+      <label for="system_prompt">System prompt <span class="help">(optional)</span></label>
+      <textarea name="system_prompt" id="system_prompt" rows="4" class="mono"></textarea>
+    </div>
+    <div class="field">
+      <label for="template">Prompt</label>
+      <textarea name="template" id="template" rows="10" class="mono" required></textarea>
+      <span class="help">Write <code>{{ '{{' }}name{{ '}}' }}</code> for anything that changes per test case; each test case fills it in.</span>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit">Create prompt</button>
+    <a class="btn secondary" href="/projects/{{ project.id }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
