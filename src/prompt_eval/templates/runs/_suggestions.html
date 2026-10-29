@@ -1,31 +1,34 @@
 {% if error %}
-<p class="status-bad">✗ {{ error }}</p>
+<div class="alert bad">✗ {{ error }}</div>
 {% endif %}
 {% set s = run.suggestions %}
 {% if s %}
-<p class="muted">From {{ run.suggestions_engine }}.</p>
-<h3>Diagnosis</h3>
-<p>{{ s.diagnosis }}</p>
-{% if s.changes %}
-<h3>Changes</h3>
-<ol class="changes">
-  {% for c in s.changes %}
-  <li><strong>{{ c.change }}</strong><br>{{ c.reason }}{% if c.addresses %}<br><span class="muted">Addresses: {{ c.addresses }}</span>{% endif %}</li>
-  {% endfor %}
-</ol>
-{% endif %}
-{% for w in s.warnings %}<p class="status-bad">⚠ {{ w }}</p>{% endfor %}
-<details>
-  <summary>Revised prompt</summary>
-  <div class="two-col">
-    <div><h4>Current (v{{ run.version.version }})</h4>{% if run.version.system_prompt %}<pre>{{ run.version.system_prompt }}</pre>{% endif %}<pre>{{ run.version.template }}</pre></div>
-    <div><h4>Suggested</h4>{% if s.revised_system_prompt %}<pre>{{ s.revised_system_prompt }}</pre>{% endif %}<pre>{{ s.revised_template }}</pre></div>
+<div class="form">
+  <div>
+    <h3>Diagnosis <span class="muted small" style="font-weight: 400;">· from {{ run.suggestions_engine }}</span></h3>
+    <p style="margin-top: 6px;">{{ s.diagnosis }}</p>
   </div>
-</details>
-<form method="post" action="/runs/{{ run.id }}/suggestions/apply">
-  <button type="submit">Save as the next version</button>
-  <span class="muted">Then start a run on it and compare.</span>
-</form>
-{% elif not error %}
-<p class="muted">A model reads this report (scores, failed checks, the judge's notes and the worst cases) and proposes concrete changes and a revised prompt.</p>
+  {% if s.changes %}
+  <div>
+    <h3>Changes</h3>
+    <ol class="changes">
+      {% for c in s.changes %}
+      <li><strong>{{ c.change }}</strong><br>{{ c.reason }}{% if c.addresses %}<br><span class="muted small">Addresses: {{ c.addresses }}</span>{% endif %}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+  {% for w in s.warnings %}<div class="alert warn">⚠ {{ w }}</div>{% endfor %}
+  <details class="expand">
+    <summary><strong>Revised prompt</strong> <span class="muted small">(compare with v{{ run.version.version }})</span></summary>
+    <div class="two-col">
+      <div><h4>Current (v{{ run.version.version }})</h4>{% if run.version.system_prompt %}<pre>{{ run.version.system_prompt }}</pre><br>{% endif %}<pre>{{ run.version.template }}</pre></div>
+      <div><h4>Suggested</h4>{% if s.revised_system_prompt %}<pre>{{ s.revised_system_prompt }}</pre><br>{% endif %}<pre>{{ s.revised_template }}</pre></div>
+    </div>
+  </details>
+  <form method="post" action="/runs/{{ run.id }}/suggestions/apply" class="form-actions">
+    <button type="submit">Save as the next version</button>
+    <span class="muted small">Then start a run on it and compare.</span>
+  </form>
+</div>
 {% endif %}

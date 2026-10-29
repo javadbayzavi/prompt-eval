@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Scoring · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>1 · Static checks</h2>
+      <p class="muted small">Rules for {{ prompt.output_format.value }} output. Each enabled check gets a share of the static score; shares add up to 100%.</p>
+    </div>
+  </div>
+  {% include "prompts/_scoring.html" %}
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>2 · Judge</h2>
+      <p class="muted small">A model grades each output on these criteria (0–10, with reasoning).</p>
+    </div>
+  </div>
+  {% include "prompts/_judge.html" %}
+</section>
+{% endblock %}

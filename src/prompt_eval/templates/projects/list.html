@@ -1,32 +1,25 @@
 {% extends "base.html" %}
+{% from "_macros.html" import page_header, empty %}
+{% set section = "projects" %}
 
 {% block title %}Projects · Prompt Eval{% endblock %}
 
 {% block content %}
-<h1>Projects</h1>
+{% call page_header("Projects", subtitle="A project groups the prompts you evaluate together.") %}
+  <a class="btn" href="/projects/new">+ New project</a>
+{% endcall %}
 
 {% if projects %}
-<ul class="cards">
+<div class="grid-cards">
   {% for project in projects %}
-  <li class="card">
-    <a href="/projects/{{ project.id }}"><strong>{{ project.name }}</strong></a>
-    <span class="muted">· {{ project.prompts | length }} prompt{{ '' if project.prompts | length == 1 else 's' }}</span>
-    {% if project.description %}<p class="muted">{{ project.description }}</p>{% endif %}
-  </li>
+  <a class="card" href="/projects/{{ project.id }}" style="text-decoration: none;">
+    <span class="card-link">{{ project.name }}</span>
+    <span class="muted small">{{ project.prompts | length }} prompt{{ '' if project.prompts | length == 1 else 's' }}</span>
+    {% if project.description %}<span class="muted">{{ project.description | truncate(140) }}</span>{% endif %}
+  </a>
   {% endfor %}
-</ul>
+</div>
 {% else %}
-<p class="muted">No projects yet. Create one to start adding prompts.</p>
+{{ empty("No projects yet", "Create a project, then add the prompts you want to evaluate.", "/projects/new", "+ New project") }}
 {% endif %}
-
-<section class="panel">
-  <h2>New project</h2>
-  <form method="post" action="/projects" class="stack">
-    <label for="name">Name</label>
-    <input name="name" id="name" required>
-    <label for="description">Description</label>
-    <textarea name="description" id="description" rows="3"></textarea>
-    <div><button type="submit">Create project</button></div>
-  </form>
-</section>
 {% endblock %}

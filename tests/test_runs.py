@@ -127,7 +127,7 @@ def test_run_on_two_engines(client, providers):
     assert "4 / 4" in page.text
     # Finished runs stop polling.
     assert 'hx-trigger="every 2s"' not in client.get(f"/runs/{run_id}/progress").text
-    assert f"/runs/{run_id}" in client.get(f"/prompts/{prompt_id}").text
+    assert f"/runs/{run_id}" in client.get(f"/prompts/{prompt_id}/runs").text
 
 
 def test_category_filter(client, providers):

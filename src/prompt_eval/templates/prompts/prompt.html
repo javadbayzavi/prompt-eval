@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}{{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if latest %}
+<section class="card">
+  <div class="card-header">
+    <div>
+      <h2>Current version: v{{ latest.version }}</h2>
+      <p class="muted small">{{ latest.created_at.strftime('%Y-%m-%d %H:%M') }}{% if latest.notes %} · {{ latest.notes }}{% endif %}</p>
+    </div>
+    {% if variables %}
+    <div class="small muted">Variables: {% for v in variables %}<code>{{ '{{' }}{{ v }}{{ '}}' }}</code>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+    {% endif %}
+  </div>
+  {% if latest.system_prompt %}<h4>System</h4><pre>{{ latest.system_prompt }}</pre>{% endif %}
+  <h4>Prompt</h4>
+  <pre>{{ latest.template }}</pre>
+</section>
+{% endif %}
+
+<details class="card">
+  <summary>Edit and save as v{{ (latest.version + 1) if latest else 1 }}</summary>
+  <form method="post" action="/prompts/{{ prompt.id }}/versions" class="form">
+    <p class="muted small">Versions never change once saved, so every run keeps the exact text it used.</p>
+    <div class="field">
+      <label for="system_prompt">System prompt</label>
+      <textarea name="system_prompt" id="system_prompt" rows="4" class="mono">{{ latest.system_prompt if latest else '' }}</textarea>
+    </div>
+    <div class="field">
+      <label for="template">Prompt</label>
+      <textarea name="template" id="template" rows="10" class="mono" required>{{ latest.template if latest else '' }}</textarea>
+    </div>
+    <div class="field">
+      <label for="notes">What changed</label>
+      <input name="notes" id="notes" placeholder="e.g. Ask for JSON only">
+    </div>
+    <div class="form-actions"><button type="submit">Save as v{{ (latest.version + 1) if latest else 1 }}</button></div>
+  </form>
+</details>
+
+{% if prompt.versions | length > 1 %}
+<section class="card flush">
+  <div class="card-header"><h2>History</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Version</th><th>Saved</th><th>What changed</th><th></th></tr></thead>
+      <tbody>
+        {% for v in prompt.versions | reverse %}{% if not loop.first %}
+        <tr>
+          <td>v{{ v.version }}</td>
+          <td class="muted">{{ v.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ v.notes or '—' }}</td>
+          <td>
+            <details class="expand">
+              <summary class="small">Show text</summary>
+              {% if v.system_prompt %}<h4>System</h4><pre>{{ v.system_prompt }}</pre>{% endif %}
+              <h4>Prompt</h4><pre>{{ v.template }}</pre>
+            </details>
+          </td>
+        </tr>
+        {% endif %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

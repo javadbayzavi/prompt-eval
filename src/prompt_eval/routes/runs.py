@@ -162,4 +162,4 @@ def delete_run(request: Request, session: SessionDep, run_id: int) -> RedirectRe
     prompt_id = run.prompt_id
     session.delete(run)
     session.commit()
-    return redirect(f"/prompts/{prompt_id}#runs")
+    return redirect(f"/prompts/{prompt_id}/runs")

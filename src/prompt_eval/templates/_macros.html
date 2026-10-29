@@ -1,7 +1,32 @@
-{% macro delete_button(action, what) -%}
+{# Page header: breadcrumbs, title, optional subtitle; actions go in a {% call %} block. #}
+{% macro page_header(title, crumbs=[], subtitle="", badge="") -%}
+<header class="page-header">
+  {% if crumbs %}
+  <nav class="crumbs" aria-label="Breadcrumb">
+    {% for label, href in crumbs %}{% if not loop.first %}<span>/</span>{% endif %}<a href="{{ href }}">{{ label }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+  <div class="page-title-row">
+    <div>
+      <h1>{{ title }}{% if badge %} <span class="badge accent">{{ badge }}</span>{% endif %}</h1>
+      {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
+    </div>
+    {% if caller %}<div class="page-actions">{{ caller() }}</div>{% endif %}
+  </div>
+</header>
+{%- endmacro %}
+
+{% macro delete_button(action, what, label="Delete") -%}
 <form method="post" action="{{ action }}" class="inline"
       onsubmit="return confirm('Delete this {{ what }}? This cannot be undone.')">
-  <button type="submit" class="danger">Delete</button>
+  <button type="submit" class="danger">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{% macro delete_link(action, what) -%}
+<form method="post" action="{{ action }}" class="inline"
+      onsubmit="return confirm('Delete this {{ what }}? This cannot be undone.')">
+  <button type="submit" class="link">Delete</button>
 </form>
 {%- endmacro %}
 
@@ -15,9 +40,19 @@
 
 {% macro variable_inputs(variables, values={}) -%}
 {% for var in variables %}
-<label for="input__{{ var }}"><code>{{ '{{' }}{{ var }}{{ '}}' }}</code></label>
-<textarea name="input__{{ var }}" id="input__{{ var }}" rows="3">{{ values.get(var, '') }}</textarea>
+<div class="field">
+  <label for="input__{{ var }}"><code>{{ '{{' }}{{ var }}{{ '}}' }}</code></label>
+  <textarea name="input__{{ var }}" id="input__{{ var }}" rows="3">{{ values.get(var, '') }}</textarea>
+</div>
 {% else %}
 <p class="muted">The latest version has no <code>{{ '{{' }}variables{{ '}}' }}</code>.</p>
 {% endfor %}
+{%- endmacro %}
+
+{% macro empty(title, text="", href="", action="") -%}
+<div class="empty">
+  <strong>{{ title }}</strong>
+  {% if text %}<span>{{ text }}</span>{% endif %}
+  {% if href %}<div><a class="btn" href="{{ href }}">{{ action }}</a></div>{% endif %}
+</div>
 {%- endmacro %}

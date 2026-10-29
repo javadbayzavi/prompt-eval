@@ -8,16 +8,36 @@
   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="/">Prompt Eval</a>
-    <nav>
-      <a href="/projects">Projects</a>
-      <a href="/engines">Engines</a>
-      {% block nav %}{% endblock %}
+<div class="layout">
+  {# Pages set `section`, `active_project_id` and `active_prompt_id` to highlight the sidebar. #}
+  <aside class="sidebar">
+    <a class="brand" href="/projects"><span class="brand-mark">◆</span> Prompt Eval</a>
+    <nav class="nav">
+      <a class="nav-item {% if section == 'projects' and not active_project_id %}active{% endif %}" href="/projects"><span class="icon">▤</span> Projects</a>
+      <a class="nav-item {% if section == 'engines' %}active{% endif %}" href="/engines"><span class="icon">⚙</span> Engines</a>
     </nav>
-  </header>
-  <main class="container">
+
+    <div class="nav-label">Your projects <a href="/projects/new" title="New project" aria-label="New project">+</a></div>
+    <nav class="nav tree">
+      {% for project in nav_projects %}
+      <a class="nav-item nav-project {% if active_project_id == project.id and not active_prompt_id %}active{% elif active_project_id == project.id %}open{% endif %}" href="/projects/{{ project.id }}">
+        <span class="icon">{{ '▾' if active_project_id == project.id else '▸' }}</span> {{ project.name }}
+      </a>
+      {% if active_project_id == project.id %}
+      {% for prompt in project.prompts %}
+      <a class="nav-item nav-sub {% if active_prompt_id == prompt.id %}active{% endif %}" href="/prompts/{{ prompt.id }}">{{ prompt.name }}</a>
+      {% endfor %}
+      <a class="nav-item nav-sub" href="/projects/{{ project.id }}/prompts/new">+ New prompt</a>
+      {% endif %}
+      {% else %}
+      <p class="nav-empty">No projects yet.</p>
+      {% endfor %}
+    </nav>
+  </aside>
+
+  <main class="main">
     {% block content %}{% endblock %}
   </main>
+</div>
 </body>
 </html>

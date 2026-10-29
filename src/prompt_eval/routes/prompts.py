@@ -1,8 +1,10 @@
+"""Prompt pages. Each tab (prompt, test cases, scoring, runs, settings) is its own page."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from prompt_eval.generation import DEFAULT_MIX, MAX_TEST_CASES
 from prompt_eval.models import (
@@ -18,6 +20,28 @@ from prompt_eval.templating import find_variables
 from prompt_eval.web import SessionDep, get_or_404, redirect, require_text, templates
 
 router = APIRouter()
+
+
+def all_engines(session: Session) -> list[Engine]:
+    return list(session.exec(select(Engine).order_by(Engine.name)).all())
+
+
+def latest_variables(prompt: Prompt) -> list[str]:
+    latest = prompt.latest_version
+    return find_variables(latest.system_prompt, latest.template) if latest else []
+
+
+def render_tab(request: Request, prompt: Prompt, tab: str, template: str, **extra) -> HTMLResponse:
+    context = {"prompt": prompt, "tab": tab, **extra}
+    return templates.TemplateResponse(request, template, context)
+
+
+@router.get("/projects/{project_id}/prompts/new", response_class=HTMLResponse)
+def new_prompt(request: Request, session: SessionDep, project_id: int) -> HTMLResponse:
+    project = get_or_404(session, Project, project_id)
+    return templates.TemplateResponse(
+        request, "prompts/new.html", {"project": project, "output_formats": list(OutputFormat)}
+    )
 
 
 @router.post("/projects/{project_id}/prompts")
@@ -54,23 +78,91 @@ def create_prompt(
 @router.get("/prompts/{prompt_id}", response_class=HTMLResponse)
 def show_prompt(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
     prompt = get_or_404(session, Prompt, prompt_id)
-    latest = prompt.latest_version
-    variables = find_variables(latest.system_prompt, latest.template) if latest else []
-    return templates.TemplateResponse(
+    return render_tab(
         request,
-        "prompts/detail.html",
-        {
-            "prompt": prompt,
-            "latest": latest,
-            "variables": variables,
-            "output_formats": list(OutputFormat),
-            "categories": list(TestCaseCategory),
-            "engines": session.exec(select(Engine).order_by(Engine.name)).all(),
-            "default_mix": DEFAULT_MIX,
-            "max_test_cases": MAX_TEST_CASES,
-            **scoring_context(prompt, rows_from_config(prompt)),
-            **judge_context(session, prompt),
-        },
+        prompt,
+        "prompt",
+        "prompts/prompt.html",
+        latest=prompt.latest_version,
+        variables=latest_variables(prompt),
+    )
+
+
+@router.get("/prompts/{prompt_id}/test-cases", response_class=HTMLResponse)
+def prompt_test_cases(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return render_tab(request, prompt, "test-cases", "prompts/test_cases.html")
+
+
+@router.get("/prompts/{prompt_id}/test-cases/new", response_class=HTMLResponse)
+def new_test_case(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return render_tab(
+        request,
+        prompt,
+        "test-cases",
+        "test_cases/new.html",
+        variables=latest_variables(prompt),
+        categories=list(TestCaseCategory),
+    )
+
+
+@router.get("/prompts/{prompt_id}/test-cases/generate", response_class=HTMLResponse)
+def generate_page(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return render_tab(
+        request,
+        prompt,
+        "test-cases",
+        "prompts/generate.html",
+        engines=all_engines(session),
+        default_mix=DEFAULT_MIX,
+        max_test_cases=MAX_TEST_CASES,
+        variables=latest_variables(prompt),
+    )
+
+
+@router.get("/prompts/{prompt_id}/scoring", response_class=HTMLResponse)
+def prompt_scoring(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    # Both helpers also return "prompt", which render_tab sets itself.
+    context = scoring_context(prompt, rows_from_config(prompt)) | judge_context(session, prompt)
+    context.pop("prompt")
+    return render_tab(request, prompt, "scoring", "prompts/scoring.html", **context)
+
+
+@router.get("/prompts/{prompt_id}/runs", response_class=HTMLResponse)
+def prompt_runs(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return render_tab(request, prompt, "runs", "prompts/runs.html")
+
+
+@router.get("/prompts/{prompt_id}/runs/new", response_class=HTMLResponse)
+def new_run(request: Request, session: SessionDep, prompt_id: int) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    counts = {cat: sum(tc.category == cat for tc in prompt.test_cases) for cat in TestCaseCategory}
+    return render_tab(
+        request,
+        prompt,
+        "runs",
+        "runs/new.html",
+        engines=all_engines(session),
+        category_counts=counts,
+    )
+
+
+@router.get("/prompts/{prompt_id}/settings", response_class=HTMLResponse)
+def prompt_settings(
+    request: Request, session: SessionDep, prompt_id: int, saved: bool = False
+) -> HTMLResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return render_tab(
+        request,
+        prompt,
+        "settings",
+        "prompts/settings.html",
+        output_formats=list(OutputFormat),
+        saved=saved,
     )
 
 
@@ -89,7 +181,7 @@ def update_prompt(
     prompt.output_format = output_format
     prompt.output_schema = output_schema.strip()
     session.commit()
-    return redirect(f"/prompts/{prompt.id}")
+    return redirect(f"/prompts/{prompt.id}/settings?saved=1")
 
 
 @router.post("/prompts/{prompt_id}/delete")

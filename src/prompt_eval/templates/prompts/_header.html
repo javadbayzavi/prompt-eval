@@ -1,0 +1,17 @@
+{# Shared header and tabs for every prompt page; needs `prompt` and `tab`. #}
+{% from "_macros.html" import page_header %}
+{% call page_header(prompt.name, crumbs=[("Projects", "/projects"), (prompt.project.name, "/projects/%d" % prompt.project.id)], subtitle=prompt.task_description, badge=prompt.output_format.value) %}
+  <a class="btn" href="/prompts/{{ prompt.id }}/runs/new">▶ New run</a>
+{% endcall %}
+{% set tabs = [
+  ("prompt", "Prompt", "/prompts/%d" % prompt.id, "v%d" % prompt.latest_version.version if prompt.latest_version else ""),
+  ("test-cases", "Test cases", "/prompts/%d/test-cases" % prompt.id, prompt.test_cases | length),
+  ("scoring", "Scoring", "/prompts/%d/scoring" % prompt.id, ""),
+  ("runs", "Runs", "/prompts/%d/runs" % prompt.id, prompt.runs | length),
+  ("settings", "Settings", "/prompts/%d/settings" % prompt.id, ""),
+] %}
+<nav class="tabs" aria-label="Prompt sections">
+  {% for key, label, href, count in tabs %}
+  <a class="tab {% if tab == key %}active{% endif %}" href="{{ href }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}{% if count != "" %}<span class="count">{{ count }}</span>{% endif %}</a>
+  {% endfor %}
+</nav>

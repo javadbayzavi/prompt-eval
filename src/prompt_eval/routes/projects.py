@@ -4,7 +4,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import select
 
-from prompt_eval.models import OutputFormat, Project
+from prompt_eval.models import Project
 from prompt_eval.web import SessionDep, get_or_404, redirect, require_text, templates
 
 router = APIRouter()
@@ -12,8 +12,13 @@ router = APIRouter()
 
 @router.get("/projects", response_class=HTMLResponse)
 def list_projects(request: Request, session: SessionDep) -> HTMLResponse:
-    projects = session.exec(select(Project).order_by(Project.created_at.desc())).all()
+    projects = session.exec(select(Project).order_by(Project.name)).all()
     return templates.TemplateResponse(request, "projects/list.html", {"projects": projects})
+
+
+@router.get("/projects/new", response_class=HTMLResponse)
+def new_project(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "projects/new.html")
 
 
 @router.post("/projects")
@@ -31,11 +36,13 @@ def create_project(
 @router.get("/projects/{project_id}", response_class=HTMLResponse)
 def show_project(request: Request, session: SessionDep, project_id: int) -> HTMLResponse:
     project = get_or_404(session, Project, project_id)
-    return templates.TemplateResponse(
-        request,
-        "projects/detail.html",
-        {"project": project, "output_formats": list(OutputFormat)},
-    )
+    return templates.TemplateResponse(request, "projects/detail.html", {"project": project})
+
+
+@router.get("/projects/{project_id}/settings", response_class=HTMLResponse)
+def project_settings(request: Request, session: SessionDep, project_id: int) -> HTMLResponse:
+    project = get_or_404(session, Project, project_id)
+    return templates.TemplateResponse(request, "projects/settings.html", {"project": project})
 
 
 @router.post("/projects/{project_id}")

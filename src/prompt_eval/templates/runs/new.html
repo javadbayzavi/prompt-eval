@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}New run · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if not engines %}
+<div class="empty">
+  <strong>No engines yet</strong>
+  <span>Add the model you want to test on the Engines page.</span>
+  <div><a class="btn" href="/engines/new">+ Add engine</a></div>
+</div>
+{% elif not prompt.test_cases %}
+<div class="empty">
+  <strong>No test cases yet</strong>
+  <span>A run needs test cases to send to the model.</span>
+  <div><a class="btn" href="/prompts/{{ prompt.id }}/test-cases/generate">✦ Generate test cases</a></div>
+</div>
+{% else %}
+<form method="post" action="/prompts/{{ prompt.id }}/runs" class="card form narrow">
+  <h2>New run</h2>
+  <div class="field">
+    <label for="run-version">Prompt version</label>
+    <select name="version_id" id="run-version">
+      {% for v in prompt.versions | reverse %}<option value="{{ v.id }}">v{{ v.version }}{% if loop.first %} (latest){% endif %}{% if v.notes %} · {{ v.notes }}{% endif %}</option>{% endfor %}
+    </select>
+  </div>
+  <fieldset>
+    <legend>Engines to test</legend>
+    <div class="checks">
+      {% for e in engines %}
+      <label><input type="checkbox" name="engine_ids" value="{{ e.id }}" {% if loop.first %}checked{% endif %}> {{ e.name }} <code class="muted">{{ e.model }}</code></label>
+      {% endfor %}
+    </div>
+    <span class="help">Ticked engines run side by side, each within its own limits.</span>
+  </fieldset>
+  <fieldset>
+    <legend>Test cases</legend>
+    <div class="checks">
+      {% for cat, n in category_counts.items() %}
+      <label><input type="checkbox" name="categories" value="{{ cat.value }}" {% if n %}checked{% else %}disabled{% endif %}> {{ cat.value }} ({{ n }})</label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <p class="muted small">
+    Scoring: static checks{% if prompt.judge_engine_id %} + judge ({{ (100 - prompt.static_weight) | round(1) }}% of the final score){% else %} only. <a href="/prompts/{{ prompt.id }}/scoring">Add a judge</a>{% endif %}.
+  </p>
+  <div class="form-actions">
+    <button type="submit">▶ Start run</button>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/runs">Cancel</a>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

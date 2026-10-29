@@ -58,7 +58,7 @@ def saved_checks(client, prompt_id):
 
 def test_prompt_page_shows_default_checks(client):
     prompt_id = make_prompt(client)
-    page = client.get(f"/prompts/{prompt_id}").text
+    page = client.get(f"/prompts/{prompt_id}/scoring").text
     assert "Matches schema" in page
     assert "These are the defaults" in page
 

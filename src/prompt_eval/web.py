@@ -1,19 +1,52 @@
 """Shared web helpers: template rendering and request-scoped dependencies."""
 
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import Session, SQLModel
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session, SQLModel, select
 
 from prompt_eval.db import session_scope
+from prompt_eval.models import Project
 
 BASE_DIR = Path(__file__).parent
 
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+@dataclass
+class NavPrompt:
+    id: int
+    name: str
+
+
+@dataclass
+class NavProject:
+    id: int
+    name: str
+    prompts: list[NavPrompt]
+
+
+def sidebar_context(request: Request) -> dict:
+    """Projects and their prompts for the sidebar on every page."""
+    engine = getattr(request.app.state, "engine", None)
+    if engine is None:
+        return {"nav_projects": []}
+    with Session(engine) as session:
+        projects = session.exec(
+            select(Project).options(selectinload(Project.prompts)).order_by(Project.name)
+        ).all()
+        nav = [
+            NavProject(p.id, p.name, [NavPrompt(pr.id, pr.name) for pr in p.prompts])
+            for p in projects
+        ]
+    return {"nav_projects": nav}
+
+
+templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors=[sidebar_context])
 
 
 def get_session(request: Request) -> Iterator[Session]:

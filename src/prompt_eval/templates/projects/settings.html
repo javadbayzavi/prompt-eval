@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header, delete_button %}
+{% set section = "projects" %}
+{% set active_project_id = project.id %}
+
+{% block title %}Settings · {{ project.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("Project settings", crumbs=[("Projects", "/projects"), (project.name, "/projects/%d" % project.id)]) }}
+
+<form method="post" action="/projects/{{ project.id }}" class="card form narrow">
+  <div class="field">
+    <label for="name">Name</label>
+    <input name="name" id="name" value="{{ project.name }}" required>
+  </div>
+  <div class="field">
+    <label for="description">Description</label>
+    <textarea name="description" id="description" rows="3">{{ project.description }}</textarea>
+  </div>
+  <div class="form-actions"><button type="submit">Save</button></div>
+</form>
+
+<div class="card danger-zone narrow">
+  <div class="card-header">
+    <div><h2>Delete project</h2><p class="muted">Deletes the project with all its prompts, test cases and runs.</p></div>
+    {{ delete_button("/projects/%d/delete" % project.id, "project and everything in it") }}
+  </div>
+</div>
+{% endblock %}

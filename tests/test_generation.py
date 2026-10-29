@@ -172,7 +172,7 @@ def test_generate_preview_then_save(client):
     client.post("/engines", data=ENGINE_FORM)
     prompt_id = setup_prompt(client)
 
-    page = client.get(f"/prompts/{prompt_id}")
+    page = client.get(f"/prompts/{prompt_id}/test-cases/generate")
     assert "Generate preview" in page.text
 
     preview = client.post(

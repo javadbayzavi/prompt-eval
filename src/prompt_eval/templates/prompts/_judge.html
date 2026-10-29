@@ -1,11 +1,7 @@
 <div id="judge">
-  <p class="muted">
-    A judge model grades each output on these criteria (0–10 each, with reasoning).
-    The final score mixes the static score and the judge score.
-  </p>
-  <form class="stack" hx-post="/prompts/{{ prompt.id }}/judge" hx-target="#judge" hx-swap="outerHTML">
-    <div class="grid">
-      <div class="stack">
+  <form class="form" hx-post="/prompts/{{ prompt.id }}/judge" hx-target="#judge" hx-swap="outerHTML">
+    <div class="form-row">
+      <div class="field">
         <label for="judge-engine">Judge engine</label>
         <select name="judge_engine_id" id="judge-engine">
           <option value="">None (static score only)</option>
@@ -13,36 +9,41 @@
           <option value="{{ e.id }}" {% if prompt.judge_engine_id == e.id %}selected{% endif %}>{{ e.name }} ({{ e.model }})</option>
           {% endfor %}
         </select>
+        <span class="help">Ideally a different, stronger model than the one under test.</span>
       </div>
-      <div class="stack">
-        <label for="static-weight">Final score: static share %</label>
+      <div class="field">
+        <label for="static-weight">Static share of the final score (%)</label>
         <input name="static_weight" id="static-weight" inputmode="decimal" value="{{ prompt.static_weight | round(1) }}">
-        <span class="muted hint">The judge gets the rest.</span>
+        <span class="help">The judge gets the rest.</span>
       </div>
     </div>
 
-    <table class="checks-table">
-      <thead><tr><th>Criterion</th><th>What the judge looks for</th><th>Weight %</th></tr></thead>
-      <tbody>
-        {% for row in criterion_rows %}
-        <tr>
-          <td><input name="crit_name_{{ loop.index0 }}" value="{{ row.name }}" aria-label="Criterion {{ loop.index }} name"></td>
-          <td><textarea name="crit_desc_{{ loop.index0 }}" rows="2" aria-label="Criterion {{ loop.index }} description">{{ row.description }}</textarea></td>
-          <td><input name="crit_weight_{{ loop.index0 }}" value="{{ row.weight }}" inputmode="decimal" class="narrow" aria-label="Criterion {{ loop.index }} weight"></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Criterion</th><th>What the judge looks for</th><th>Weight %</th></tr></thead>
+        <tbody>
+          {% for row in criterion_rows %}
+          <tr>
+            <td style="width: 22%;"><input name="crit_name_{{ loop.index0 }}" value="{{ row.name }}" aria-label="Criterion {{ loop.index }} name"></td>
+            <td><textarea name="crit_desc_{{ loop.index0 }}" rows="2" aria-label="Criterion {{ loop.index }} description">{{ row.description }}</textarea></td>
+            <td><input name="crit_weight_{{ loop.index0 }}" value="{{ row.weight }}" inputmode="decimal" class="input-narrow" aria-label="Criterion {{ loop.index }} weight"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-    <label for="judge-instructions">Extra grading instructions <span class="muted">(optional)</span></label>
-    <textarea name="judge_instructions" id="judge-instructions" rows="2">{{ prompt.judge_instructions }}</textarea>
+    <div class="field">
+      <label for="judge-instructions">Extra grading instructions <span class="help">(optional)</span></label>
+      <textarea name="judge_instructions" id="judge-instructions" rows="2">{{ prompt.judge_instructions }}</textarea>
+    </div>
 
     {% if problems %}
-    <ul class="status-bad">{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    <div class="alert bad"><ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
     {% elif saved %}
-    <p class="status-ok">✓ {{ saved }} New runs use these settings; use “Re-judge” on a run to apply them to it.</p>
+    <div class="alert ok">✓ {{ saved }} New runs use these settings; “Re-judge” applies them to an existing run.</div>
     {% endif %}
-    <div>
+    <div class="form-actions">
       <button type="submit">Save judge settings</button>
       {% if not criteria_default %}<button type="submit" name="reset" value="1" class="secondary">Reset criteria</button>{% endif %}
     </div>

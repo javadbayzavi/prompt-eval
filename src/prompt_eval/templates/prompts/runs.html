@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Runs · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if prompt.runs %}
+<section class="card flush">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Run</th><th>Version</th><th>Engines</th><th>Results</th><th>Status</th><th>Started</th><th></th></tr></thead>
+      <tbody>
+        {% for run in prompt.runs %}
+        <tr>
+          <td><a href="/runs/{{ run.id }}"><strong>#{{ run.id }}</strong></a></td>
+          <td>v{{ run.version.version }}</td>
+          <td>{{ run.results | map(attribute='engine_name') | unique | join(', ') }}</td>
+          <td>{{ run.results | length }}</td>
+          <td><span class="badge status-{{ run.status.value }}">{{ run.status.value }}</span></td>
+          <td class="muted">{{ run.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="actions"><a href="/runs/{{ run.id }}">Results</a><a href="/runs/{{ run.id }}/report">Report</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<div class="empty">
+  <strong>No runs yet</strong>
+  <span>A run sends every test case to one or more engines and scores the answers.</span>
+  <div><a class="btn" href="/prompts/{{ prompt.id }}/runs/new">▶ New run</a></div>
+</div>
+{% endif %}
+{% endblock %}

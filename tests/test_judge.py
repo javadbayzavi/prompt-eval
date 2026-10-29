@@ -143,7 +143,7 @@ def only_result(client) -> RunResult:
 def test_judge_settings_form(client):
     prompt_id = make_prompt(client)
     judge_id = add_engine(client, "judge")
-    page = client.get(f"/prompts/{prompt_id}").text
+    page = client.get(f"/prompts/{prompt_id}/scoring").text
     assert "None (static score only)" in page
     assert "Correctness" in page
 

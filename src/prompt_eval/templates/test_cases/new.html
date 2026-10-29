@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import select, variable_inputs %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Add test case · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+<form method="post" action="/prompts/{{ prompt.id }}/test-cases" class="card form narrow">
+  <h2>Add a test case</h2>
+  <div class="form-row">
+    <div class="field">
+      <label for="tc-name">Name</label>
+      <input name="name" id="tc-name" required autofocus>
+    </div>
+    <div class="field">
+      <label for="category">Category</label>
+      {{ select("category", categories, categories[0]) }}
+    </div>
+  </div>
+  <fieldset>
+    <legend>Inputs</legend>
+    {{ variable_inputs(variables) }}
+  </fieldset>
+  <div class="field">
+    <label for="criteria">Criteria</label>
+    <textarea name="criteria" id="criteria" rows="3"></textarea>
+    <span class="help">What a good answer must or must not do. The judge treats these as requirements.</span>
+  </div>
+  <div class="field">
+    <label for="expected_output">Expected output <span class="help">(optional)</span></label>
+    <textarea name="expected_output" id="expected_output" rows="4" class="mono"></textarea>
+    <span class="help">A reference answer for the judge. Only include parts with one correct answer.</span>
+  </div>
+  <div class="form-actions">
+    <button type="submit">Add test case</button>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/test-cases">Cancel</a>
+  </div>
+</form>
+{% endblock %}

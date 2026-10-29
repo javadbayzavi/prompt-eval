@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% set section = "projects" %}
+
+{% block title %}New project · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("New project", crumbs=[("Projects", "/projects")]) }}
+
+<form method="post" action="/projects" class="card form narrow">
+  <div class="field">
+    <label for="name">Name</label>
+    <input name="name" id="name" required autofocus>
+  </div>
+  <div class="field">
+    <label for="description">Description <span class="help">(optional)</span></label>
+    <textarea name="description" id="description" rows="3"></textarea>
+  </div>
+  <div class="form-actions">
+    <button type="submit">Create project</button>
+    <a class="btn secondary" href="/projects">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,9 +1,11 @@
+<button type="button" class="secondary btn-sm" hx-post="/engines/{{ engine.id }}/test" hx-target="#test-{{ engine.id }}" hx-disabled-elt="this">Test again</button>
+<div style="margin-top: 6px;">
 {% if error %}
-<span class="status-bad">✗ {{ error }}</span>
+<span class="text-bad">✗ {{ error }}</span>
 {% elif response.refused %}
-<span class="status-bad">✗ The model refused the request.</span>
+<span class="text-bad">✗ The model refused the request.</span>
 {% else %}
-<span class="status-ok">✓ {{ response.latency_ms }} ms</span>
-<span class="muted">· {{ response.model }} · {{ response.input_tokens }} in / {{ response.output_tokens }} out{% if response.attempts > 1 %} · {{ response.attempts }} attempts{% endif %}</span>
-<code>{{ response.text | truncate(80) }}</code>
+<span class="text-ok">✓ Connected · {{ response.latency_ms }} ms</span><br>
+<span class="muted">{{ response.input_tokens }} in / {{ response.output_tokens }} out{% if response.attempts > 1 %} · {{ response.attempts }} attempts{% endif %} · “{{ response.text | truncate(40) }}”</span>
 {% endif %}
+</div>

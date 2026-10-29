@@ -43,7 +43,7 @@ async def create_test_case(
     )
     session.add(test_case)
     session.commit()
-    return redirect(f"/prompts/{prompt.id}#test-cases")
+    return redirect(f"/prompts/{prompt.id}/test-cases")
 
 
 @router.get("/test-cases/{test_case_id}/edit", response_class=HTMLResponse)
@@ -55,6 +55,8 @@ def edit_test_case(request: Request, session: SessionDep, test_case_id: int) -> 
         request,
         "test_cases/edit.html",
         {
+            "prompt": test_case.prompt,
+            "tab": "test-cases",
             "test_case": test_case,
             "variables": merge_variables([current, test_case.inputs]),
             "categories": list(TestCaseCategory),
@@ -79,7 +81,7 @@ async def update_test_case(
     test_case.expected_output = expected_output.strip()
     test_case.criteria = criteria.strip()
     session.commit()
-    return redirect(f"/prompts/{test_case.prompt_id}#test-cases")
+    return redirect(f"/prompts/{test_case.prompt_id}/test-cases")
 
 
 @router.post("/test-cases/{test_case_id}/delete")
@@ -88,4 +90,4 @@ def delete_test_case(session: SessionDep, test_case_id: int) -> RedirectResponse
     prompt_id = test_case.prompt_id
     session.delete(test_case)
     session.commit()
-    return redirect(f"/prompts/{prompt_id}#test-cases")
+    return redirect(f"/prompts/{prompt_id}/test-cases")

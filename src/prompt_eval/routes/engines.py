@@ -90,9 +90,12 @@ def form_context(**extra) -> dict:
 @router.get("/engines", response_class=HTMLResponse)
 def list_engines(request: Request, session: SessionDep) -> HTMLResponse:
     engines = session.exec(select(Engine).order_by(Engine.name)).all()
-    return templates.TemplateResponse(
-        request, "engines/list.html", form_context(engines=engines, engine=None)
-    )
+    return templates.TemplateResponse(request, "engines/list.html", {"engines": engines})
+
+
+@router.get("/engines/new", response_class=HTMLResponse)
+def new_engine(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(request, "engines/new.html", form_context(engine=None))
 
 
 @router.post("/engines")

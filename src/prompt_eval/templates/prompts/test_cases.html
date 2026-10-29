@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import delete_link, empty %}
+{% set section = "projects" %}
+{% set active_project_id = prompt.project.id %}
+{% set active_prompt_id = prompt.id %}
+
+{% block title %}Test cases · {{ prompt.name }} · Prompt Eval{% endblock %}
+
+{% block content %}
+{% include "prompts/_header.html" %}
+
+{% if prompt.test_cases %}
+<section class="card flush">
+  <div class="card-header">
+    <h2>{{ prompt.test_cases | length }} test cases</h2>
+    <div class="page-actions">
+      <a class="btn secondary btn-sm" href="/prompts/{{ prompt.id }}/test-cases/new">+ Add manually</a>
+      <a class="btn btn-sm" href="/prompts/{{ prompt.id }}/test-cases/generate">✦ Generate</a>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Category</th><th>Inputs</th><th>Criteria</th><th></th></tr></thead>
+      <tbody>
+        {% for tc in prompt.test_cases %}
+        <tr>
+          <td><strong>{{ tc.name }}</strong>{% if tc.source.value == 'generated' %}<br><span class="muted small">generated</span>{% endif %}</td>
+          <td><span class="badge">{{ tc.category.value }}</span></td>
+          <td class="clip small">{% for key, value in tc.inputs.items() %}<code>{{ key }}</code>: {{ value | truncate(60) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+          <td class="clip small">{{ tc.criteria | truncate(120) or '—' }}</td>
+          <td class="actions">
+            <a href="/test-cases/{{ tc.id }}/edit">Edit</a>
+            {{ delete_link("/test-cases/%d/delete" % tc.id, "test case") }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<div class="empty">
+  <strong>No test cases yet</strong>
+  <span>Generate a set with a model, or add your own.</span>
+  <div class="form-actions" style="justify-content: center;">
+    <a class="btn" href="/prompts/{{ prompt.id }}/test-cases/generate">✦ Generate test cases</a>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/test-cases/new">+ Add manually</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

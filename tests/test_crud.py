@@ -73,7 +73,8 @@ def test_create_prompt_with_first_version(client, db, prompt_id):
     assert project_page.status_code == 200
     assert "Classify ticket" in project_page.text
 
-    page = client.get(f"/prompts/{prompt_id}")
+    assert client.get(f"/prompts/{prompt_id}").status_code == 200
+    page = client.get(f"/prompts/{prompt_id}/test-cases/new")
     assert page.status_code == 200
     # One input field per template variable.
     assert 'name="input__ticket"' in page.text
