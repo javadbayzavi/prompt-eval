@@ -97,11 +97,12 @@ model first.
 
 ### Choosing limits
 
-Set an engine's limits a little below your account's limits (Claude Console → Settings →
-Limits). Anthropic counts input and output tokens separately; the app counts them together,
-so setting **Tokens / min** to about 80% of your *output* tokens/min limit is safe. If you
-leave the limits blank, a 429 from the API still pauses that engine and retries after the
-wait the API asks for.
+Press **Test** on the Engines page: it shows the per-minute limits the provider reports for
+your key and offers to apply 80% of them in one click. Anthropic counts input and output
+tokens separately; the app counts them together, so it suggests 80% of the tighter token
+limit (usually output). You can also read the limits in the Claude Console (Settings →
+Limits). If you leave the limits blank, a 429 from the API still pauses that engine and
+retries after the wait the API asks for.
 
 Two engines that use the same Claude model share one Anthropic quota, but each has its own
 limiter. Split the quota between them, or use one engine for both jobs.

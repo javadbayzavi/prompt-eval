@@ -1,5 +1,7 @@
 """Provider-neutral request/response types and errors for engines."""
 
+import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -23,6 +25,9 @@ class ChatResponse:
     output_tokens: int = 0
     latency_ms: int = 0
     attempts: int = 1
+    # Per-minute limits the provider reported for this key, e.g. {"requests": 10000,
+    # "input_tokens": 10000000, "output_tokens": 2000000}. Empty when it reports none.
+    rate_limits: dict[str, int] = field(default_factory=dict)
     raw: dict = field(default_factory=dict, repr=False)
 
     @property
@@ -58,3 +63,20 @@ def parse_retry_after(value: str | None) -> float | None:
         return max(0.0, float(value))
     except ValueError:
         return None  # HTTP-date form; fall back to backoff
+
+
+RATE_LIMIT_HEADERS = (
+    re.compile(r"anthropic-ratelimit-(?P<name>[a-z-]+)-limit"),  # Anthropic
+    re.compile(r"x-ratelimit-limit-(?P<name>[a-z-]+)"),  # OpenAI style
+)
+
+
+def parse_rate_limits(headers: Mapping[str, str]) -> dict[str, int]:
+    """Read limit headers such as `anthropic-ratelimit-output-tokens-limit: 2000000`."""
+    limits = {}
+    for key, value in headers.items():
+        for pattern in RATE_LIMIT_HEADERS:
+            match = pattern.fullmatch(key.lower())
+            if match and value.strip().isdigit():
+                limits[match.group("name").replace("-", "_")] = int(value)
+    return limits

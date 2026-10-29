@@ -7,5 +7,26 @@
 {% else %}
 <span class="text-ok">✓ Connected · {{ response.latency_ms }} ms</span><br>
 <span class="muted">{{ response.input_tokens }} in / {{ response.output_tokens }} out{% if response.attempts > 1 %} · {{ response.attempts }} attempts{% endif %} · “{{ response.text | truncate(40) }}”</span>
+{% if response.rate_limits %}
+{% set labels = {"requests": "requests", "input_tokens": "input tokens", "output_tokens": "output tokens", "tokens": "tokens"} %}
+<div style="margin-top: 8px;">
+  <strong>Your limits per minute</strong>
+  <ul class="check-list" style="margin-top: 2px;">
+    {% for key, value in response.rate_limits.items() %}
+    <li>{{ "{:,}".format(value) }} {{ labels.get(key, key | replace("_", " ")) }}</li>
+    {% endfor %}
+  </ul>
+  {% if suggested %}
+  <form method="post" action="/engines/{{ engine.id }}/limits" style="margin-top: 6px;">
+    {% for key, value in suggested.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <button type="submit" class="btn-sm" title="80% of the reported limits">
+      Use {% if suggested.requests_per_minute %}{{ "{:,}".format(suggested.requests_per_minute) }} req/min{% endif %}{% if suggested.requests_per_minute and suggested.tokens_per_minute %} · {% endif %}{% if suggested.tokens_per_minute %}{{ "{:,}".format(suggested.tokens_per_minute) }} tok/min{% endif %}
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<br><span class="muted">The provider reported no rate limits.</span>
+{% endif %}
 {% endif %}
 </div>

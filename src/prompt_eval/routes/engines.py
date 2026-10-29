@@ -131,6 +131,44 @@ async def delete_engine(request: Request, session: SessionDep, engine_id: int) -
     return redirect("/engines")
 
 
+# Leave headroom under the provider's limits (other keys or colleagues may share them).
+LIMIT_SHARE = 0.8
+
+
+def suggest_limits(rate_limits: dict[str, int]) -> dict[str, int]:
+    """Requests/min and tokens/min to use, from the limits the provider reported.
+
+    The engine counts input and output tokens together, so the tighter of the token limits
+    (usually output) keeps both under their caps.
+    """
+    suggested = {}
+    if requests := rate_limits.get("requests"):
+        suggested["requests_per_minute"] = int(requests * LIMIT_SHARE)
+    token_limits = [
+        rate_limits[k] for k in ("output_tokens", "input_tokens", "tokens") if k in rate_limits
+    ]
+    if token_limits:
+        suggested["tokens_per_minute"] = int(min(token_limits) * LIMIT_SHARE)
+    return suggested
+
+
+@router.post("/engines/{engine_id}/limits")
+def apply_limits(
+    session: SessionDep,
+    engine_id: int,
+    requests_per_minute: Annotated[str, Form()] = "",
+    tokens_per_minute: Annotated[str, Form()] = "",
+) -> RedirectResponse:
+    engine = get_or_404(session, Engine, engine_id)
+    if (rpm := optional_int(requests_per_minute, "Requests per minute")) is not None:
+        engine.requests_per_minute = rpm
+    if (tpm := optional_int(tokens_per_minute, "Tokens per minute")) is not None:
+        engine.tokens_per_minute = tpm
+    engine.updated_at = utcnow()
+    session.commit()
+    return redirect("/engines")
+
+
 @router.post("/engines/{engine_id}/test", response_class=HTMLResponse)
 async def test_engine(request: Request, session: SessionDep, engine_id: int) -> HTMLResponse:
     """Send one tiny request and render the outcome (an htmx fragment)."""
@@ -138,7 +176,9 @@ async def test_engine(request: Request, session: SessionDep, engine_id: int) -> 
     context: dict = {"engine": engine}
     try:
         client = await request.app.state.engines.get(engine)
-        context["response"] = await client.complete(ChatRequest(user=PING_PROMPT, max_tokens=1024))
+        response = await client.complete(ChatRequest(user=PING_PROMPT, max_tokens=1024))
+        context["response"] = response
+        context["suggested"] = suggest_limits(response.rate_limits)
     except EngineError as e:
         context["error"] = str(e)
     return templates.TemplateResponse(request, "engines/_test_result.html", context)

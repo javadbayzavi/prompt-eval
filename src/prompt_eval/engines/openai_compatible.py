@@ -9,6 +9,7 @@ from prompt_eval.engines.base import (
     ChatResponse,
     EngineError,
     RetryableError,
+    parse_rate_limits,
     parse_retry_after,
 )
 
@@ -80,6 +81,7 @@ class OpenAICompatibleProvider:
             input_tokens=usage.get("prompt_tokens", 0),
             output_tokens=usage.get("completion_tokens", 0),
             latency_ms=int((time.perf_counter() - started) * 1000),
+            rate_limits=parse_rate_limits(response.headers),
             raw=data,
         )
 

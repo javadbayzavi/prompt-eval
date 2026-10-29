@@ -6,7 +6,12 @@ import httpx2
 import pytest
 
 from prompt_eval.engines.anthropic_provider import AnthropicProvider
-from prompt_eval.engines.base import ChatRequest, EngineError, RetryableError
+from prompt_eval.engines.base import (
+    ChatRequest,
+    EngineError,
+    RetryableError,
+    parse_rate_limits,
+)
 from prompt_eval.engines.openai_compatible import OpenAICompatibleProvider
 
 
@@ -189,7 +194,15 @@ async def test_anthropic_success_sends_effort_and_reads_text():
     def handler(request):
         seen["body"] = json.loads(request.content)
         return httpx2.Response(
-            200, headers={"content-type": "text/event-stream"}, content=sse.encode()
+            200,
+            headers={
+                "content-type": "text/event-stream",
+                "anthropic-ratelimit-requests-limit": "10000",
+                "anthropic-ratelimit-input-tokens-limit": "10000000",
+                "anthropic-ratelimit-output-tokens-limit": "2000000",
+                "anthropic-ratelimit-requests-remaining": "9999",
+            },
+            content=sse.encode(),
         )
 
     provider = anthropic_provider(handler, effort="low")
@@ -200,6 +213,11 @@ async def test_anthropic_success_sends_effort_and_reads_text():
     assert seen["body"]["output_config"] == {"effort": "low"}
     assert seen["body"]["system"] == "sys"
     assert "temperature" not in seen["body"]
+    assert response.rate_limits == {
+        "requests": 10000,
+        "input_tokens": 10000000,
+        "output_tokens": 2000000,
+    }
 
 
 @pytest.mark.anyio
@@ -237,3 +255,13 @@ async def test_anthropic_sends_json_schema_with_effort():
         "effort": "high",
         "format": {"type": "json_schema", "schema": schema},
     }
+
+
+def test_parse_rate_limits_openai_style_and_junk():
+    headers = {
+        "X-RateLimit-Limit-Requests": "500",
+        "x-ratelimit-limit-tokens": "30000",
+        "x-ratelimit-remaining-tokens": "29000",
+        "anthropic-ratelimit-tokens-limit": "n/a",
+    }
+    assert parse_rate_limits(headers) == {"requests": 500, "tokens": 30000}

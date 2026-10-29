@@ -7,6 +7,7 @@ from prompt_eval.engines.base import (
     ChatResponse,
     EngineError,
     RetryableError,
+    parse_rate_limits,
     parse_retry_after,
 )
 
@@ -54,6 +55,7 @@ class AnthropicProvider:
             # Streaming avoids HTTP timeouts on long outputs; we only need the final message.
             async with self.client.messages.stream(**kwargs) as stream:
                 message = await stream.get_final_message()
+                rate_limits = parse_rate_limits(stream.response.headers)
         except anthropic.RateLimitError as e:
             raise RetryableError(
                 f"Rate limited: {e.message}",
@@ -77,6 +79,7 @@ class AnthropicProvider:
             input_tokens=message.usage.input_tokens,
             output_tokens=message.usage.output_tokens,
             latency_ms=int((time.perf_counter() - started) * 1000),
+            rate_limits=rate_limits,
         )
 
     async def aclose(self) -> None:
