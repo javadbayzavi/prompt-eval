@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% set section = "projects" %}
+
+{% block title %}Import project · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("Import project", crumbs=[("Projects", "/projects")],
+               subtitle="Create a project with its prompts, versions, scoring and test cases from one JSON file.") }}
+
+<form method="post" action="/projects/import" enctype="multipart/form-data" class="card form">
+  {% if problems %}
+  <div class="alert bad"><ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+  {% endif %}
+  <div class="field">
+    <label for="file">JSON file</label>
+    <input type="file" name="file" id="file" accept="application/json,.json">
+  </div>
+  <div class="field">
+    <label for="content">or paste it <span class="help">(format <code>{{ format }}</code>, see the README)</span></label>
+    <textarea name="content" id="content" rows="14" spellcheck="false">{{ content or "" }}</textarea>
+  </div>
+  <div class="form-actions">
+    <button type="submit">Import</button>
+    <a class="btn secondary" href="/projects">Cancel</a>
+  </div>
+</form>
+{% endblock %}
