@@ -10,6 +10,7 @@ from prompt_eval.db import init_db, make_engine
 from prompt_eval.engines import EngineRegistry
 from prompt_eval.routes import (
     engines,
+    file_format,
     generation,
     home,
     projects,
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         runs,
         scoring,
         reports,
+        file_format,
     ):
         app.include_router(module.router)
     return app

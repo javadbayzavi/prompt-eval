@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 {% from "_macros.html" import page_header %}
 {% set section = "projects" %}
+{% if project %}{% set active_project_id = project.id %}{% endif %}
 
-{% block title %}Import project · Prompt Eval{% endblock %}
+{% block title %}{{ "Import prompts · " ~ project.name if project else "Import project" }} · Prompt Eval{% endblock %}
 
 {% block content %}
+{% if project %}
+{{ page_header("Import prompts", crumbs=[("Projects", "/projects"), (project.name, "/projects/%d" % project.id)],
+               subtitle="Add the prompts of an exported file, with their versions, scoring and test cases, to this project.") }}
+{% set action = "/projects/%d/import" % project.id %}
+{% set cancel = "/projects/%d" % project.id %}
+{% else %}
 {{ page_header("Import project", crumbs=[("Projects", "/projects")],
                subtitle="Create a project with its prompts, versions, scoring and test cases from one JSON file.") }}
+{% set action = "/projects/import" %}
+{% set cancel = "/projects" %}
+{% endif %}
 
-<form method="post" action="/projects/import" enctype="multipart/form-data" class="card form">
+<form method="post" action="{{ action }}" enctype="multipart/form-data" class="card form">
   {% if problems %}
   <div class="alert bad"><ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
   {% endif %}
@@ -22,7 +32,7 @@
   </div>
   <div class="form-actions">
     <button type="submit">Import</button>
-    <a class="btn secondary" href="/projects">Cancel</a>
+    <a class="btn secondary" href="{{ cancel }}">Cancel</a>
   </div>
 </form>
 {% endblock %}

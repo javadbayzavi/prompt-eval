@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% from "_macros.html" import page_header %}
+{% set section = "help" %}
+
+{% block title %}File format · Prompt Eval{% endblock %}
+
+{% block content %}
+{{ page_header("Import and export file", subtitle="One JSON format, " ~ format ~ ", for a whole project or for a single prompt.") }}
+
+<div class="card">
+  <h2>Two ways to use it</h2>
+  <table>
+    <thead><tr><th></th><th>Whole project</th><th>One prompt</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Export</strong></td>
+          <td>Project page → <em>Export</em>: every prompt of the project.</td>
+          <td>Prompt → Settings → <em>Export</em>: that prompt alone, under its project's name.</td></tr>
+      <tr><td><strong>Import</strong></td>
+          <td><a href="/projects/import">Projects → Import</a>: creates a new project with the file's name.</td>
+          <td>Project page → <em>Import prompts</em>: adds the file's prompts to that project; its name and other prompts stay.</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Both are the same file: a project file simply lists more prompts. Runs and reports are never in it. Importing an exported file gives back the same prompts, versions, scoring settings and test cases.</p>
+</div>
+
+<div class="card">
+  <h2>Fields</h2>
+  <table>
+    <thead><tr><th>Field</th><th>Required</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>format</code></td><td></td><td>Always <code>{{ format }}</code>.</td></tr>
+      <tr><td><code>project.name</code>, <code>project.description</code></td><td>name</td><td>The new project's name; ignored when importing into an existing project.</td></tr>
+      <tr><td><code>prompts[].name</code></td><td>yes</td><td>Unique in the file and in the project it goes into.</td></tr>
+      <tr><td><code>task_description</code></td><td></td><td>What the prompt should do; used to generate test cases and by the judge.</td></tr>
+      <tr><td><code>output_format</code></td><td></td><td><code>json</code>, <code>yaml</code>, <code>xml</code>, <code>markdown</code> or <code>text</code> (default).</td></tr>
+      <tr><td><code>output_schema</code></td><td></td><td>A JSON Schema, as an object or as text.</td></tr>
+      <tr><td><code>static_checks</code></td><td></td><td><code>[{name, weight, param}]</code>, weights adding up to 100; leave out or <code>null</code> for the defaults. Names below.</td></tr>
+      <tr><td><code>static_weight</code></td><td></td><td>The static checks' share of the final score, 0–100 (default 30).</td></tr>
+      <tr><td><code>judge_engine</code></td><td></td><td>The name of an engine that already exists on the <a href="/engines">Engines</a> page, or <code>null</code>.</td></tr>
+      <tr><td><code>judge_criteria</code>, <code>judge_instructions</code></td><td></td><td><code>[{name, description, weight}]</code>, weights adding up to 100; leave out or <code>null</code> for the defaults.</td></tr>
+      <tr><td><code>versions[]</code></td><td>one</td><td><code>{system_prompt, template, notes}</code>; <code>template</code> is required. Numbered in order, so the last is the latest. <code>{% raw %}{{name}}{% endraw %}</code> placeholders are filled from each test case's <code>inputs</code>.</td></tr>
+      <tr><td><code>test_cases[]</code></td><td></td><td><code>{name, category, inputs, criteria, expected_output}</code>; <code>category</code> is <code>normal</code> (default), <code>edge</code> or <code>adversarial</code>; <code>inputs</code> must fill every placeholder of the latest version.</td></tr>
+    </tbody>
+  </table>
+  <h3>Static check names</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Check</th><th>Param</th></tr></thead>
+    <tbody>
+      {% for name, spec in checks.items() %}
+      <tr><td><code>{{ name }}</code></td><td>{{ spec.label }}: {{ spec.description }}</td><td>{{ spec.param_label or "" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted">A file is checked the way the pages check each part. If anything is wrong, every problem is listed and nothing is saved.</p>
+</div>
+
+<div class="card">
+  <h2>A project file</h2>
+  <p class="muted">Two prompts: the first with every field, the second with only what is required.</p>
+  <pre>{{ project_example | tojson(indent=2) }}</pre>
+</div>
+
+<div class="card">
+  <h2>A single-prompt file</h2>
+  <p class="muted">What <em>Export</em> on a prompt gives: the same shape with one prompt in the list.</p>
+  <pre>{{ prompt_example | tojson(indent=2) }}</pre>
+</div>
+{% endblock %}

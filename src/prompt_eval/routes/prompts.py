@@ -3,9 +3,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlmodel import Session, select
 
+from prompt_eval import exporting
 from prompt_eval.generation import DEFAULT_MIX, MAX_TEST_CASES
 from prompt_eval.models import (
     Engine,
@@ -15,6 +16,7 @@ from prompt_eval.models import (
     PromptVersion,
     TestCaseCategory,
 )
+from prompt_eval.routes.projects import download
 from prompt_eval.routes.scoring import judge_context, rows_from_config, scoring_context
 from prompt_eval.templating import find_variables
 from prompt_eval.web import SessionDep, get_or_404, redirect, require_text, templates
@@ -182,6 +184,12 @@ def update_prompt(
     prompt.output_schema = output_schema.strip()
     session.commit()
     return redirect(f"/prompts/{prompt.id}/settings?saved=1")
+
+
+@router.get("/prompts/{prompt_id}/export")
+def export_prompt(session: SessionDep, prompt_id: int) -> JSONResponse:
+    prompt = get_or_404(session, Prompt, prompt_id)
+    return download(exporting.prompt_file(session, prompt), prompt.name)
 
 
 @router.post("/prompts/{prompt_id}/delete")
