@@ -8,6 +8,8 @@
 {% block content %}
 {% call page_header(project.name, crumbs=[("Projects", "/projects")], subtitle=project.description) %}
   <a class="btn secondary" href="/projects/{{ project.id }}/settings">Settings</a>
+  <a class="btn secondary" href="/projects/{{ project.id }}/import">Import prompts</a>
+  <a class="btn secondary" href="/projects/{{ project.id }}/export" download>Export</a>
   <a class="btn" href="/projects/{{ project.id }}/prompts/new">+ New prompt</a>
 {% endcall %}
 

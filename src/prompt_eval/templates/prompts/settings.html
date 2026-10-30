@@ -32,6 +32,13 @@
   <div class="form-actions"><button type="submit">Save</button></div>
 </form>
 
+<div class="card narrow">
+  <div class="card-header">
+    <div><h2>Export</h2><p class="muted">This prompt with its versions, scoring settings and test cases, as a file another project can import. Runs stay here.</p></div>
+    <a class="btn secondary" href="/prompts/{{ prompt.id }}/export" download>Export</a>
+  </div>
+</div>
+
 <div class="card danger-zone narrow">
   <div class="card-header">
     <div><h2>Delete prompt</h2><p class="muted">Deletes its versions, test cases and runs.</p></div>

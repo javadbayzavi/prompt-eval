@@ -120,17 +120,40 @@ def parse(text: str) -> ImportFile:
 
 def import_project(session: Session, data: ImportFile) -> Project:
     """Adds the project with everything in it, or raises `InvalidImport` and adds nothing."""
-    engines = {engine.name: engine for engine in session.exec(select(Engine)).all()}
-    problems = [problem for prompt in data.prompts for problem in _problems(prompt, engines)]
-    if problems:
-        raise InvalidImport(problems)
-
+    engines = _checked(session, data, taken=set())
     project = Project(name=data.project.name.strip(), description=data.project.description.strip())
     for prompt_in in data.prompts:
         project.prompts.append(_prompt(prompt_in, engines))
     session.add(project)
     session.commit()
     return project
+
+
+def import_into(session: Session, project: Project, data: ImportFile) -> list[Prompt]:
+    """Adds the file's prompts to an existing project, which keeps its name and its other
+    prompts; raises `InvalidImport` and adds nothing if any is invalid or its name is taken."""
+    if not data.prompts:
+        raise InvalidImport(["The file has no prompts"])
+    engines = _checked(session, data, taken={prompt.name for prompt in project.prompts})
+    prompts = [_prompt(prompt_in, engines) for prompt_in in data.prompts]
+    project.prompts.extend(prompts)
+    session.commit()
+    return prompts
+
+
+def _checked(session: Session, data: ImportFile, taken: set[str]) -> dict[str, Engine]:
+    """The engines by name, once every prompt in the file is valid and has a free name."""
+    engines = {engine.name: engine for engine in session.exec(select(Engine)).all()}
+    problems = [problem for prompt in data.prompts for problem in _problems(prompt, engines)]
+    names = [prompt.name.strip() for prompt in data.prompts]
+    for name in dict.fromkeys(names):
+        if name in taken:
+            problems.append(f"{name}: the project already has a prompt with this name")
+        elif names.count(name) > 1:
+            problems.append(f"{name}: the file has more than one prompt with this name")
+    if problems:
+        raise InvalidImport(problems)
+    return engines
 
 
 def _prompt(data: PromptIn, engines: dict[str, Engine]) -> Prompt:
