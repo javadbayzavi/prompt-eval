@@ -124,6 +124,8 @@ def test_the_file_format_guide_shows_both_examples_and_is_in_the_sidebar(client)
     assert page.status_code == 200
     assert "A project file" in page.text and "A single-prompt file" in page.text
     assert "forbidden_regex" in page.text
+    assert 'data-copy="project-example"' in page.text and 'id="project-example"' in page.text
+    assert 'data-copy="prompt-example"' in page.text and 'id="prompt-example"' in page.text
     assert 'href="/help/file-format"' in client.get("/projects").text
 
 

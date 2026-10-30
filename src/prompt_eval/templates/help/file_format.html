@@ -55,14 +55,39 @@
 </div>
 
 <div class="card">
-  <h2>A project file</h2>
-  <p class="muted">Two prompts: the first with every field, the second with only what is required.</p>
-  <pre>{{ project_example | tojson(indent=2) }}</pre>
+  <div class="card-header">
+    <div><h2>A project file</h2><p class="muted">Two prompts: the first with every field, the second with only what is required.</p></div>
+    <button type="button" class="secondary" data-copy="project-example">Copy</button>
+  </div>
+  <pre id="project-example">{{ project_example | tojson(indent=2) }}</pre>
 </div>
 
 <div class="card">
-  <h2>A single-prompt file</h2>
-  <p class="muted">What <em>Export</em> on a prompt gives: the same shape with one prompt in the list.</p>
-  <pre>{{ prompt_example | tojson(indent=2) }}</pre>
+  <div class="card-header">
+    <div><h2>A single-prompt file</h2><p class="muted">What <em>Export</em> on a prompt gives: the same shape with one prompt in the list.</p></div>
+    <button type="button" class="secondary" data-copy="prompt-example">Copy</button>
+  </div>
+  <pre id="prompt-example">{{ prompt_example | tojson(indent=2) }}</pre>
 </div>
+
+<script>
+  // Copies an example as plain text, e.g. to give an AI as the template for a new file.
+  document.querySelectorAll("[data-copy]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const text = document.getElementById(button.dataset.copy).textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        // Without the clipboard API (plain HTTP on another machine), copy through a selection.
+        const area = Object.assign(document.createElement("textarea"), { value: text });
+        document.body.append(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+      }
+      button.textContent = "Copied";
+      setTimeout(() => { button.textContent = "Copy"; }, 1500);
+    });
+  });
+</script>
 {% endblock %}
